@@ -13,6 +13,9 @@ namespace BrushSpirit.LevelFlow
 
         public System.Action OnAllWavesCleared;
 
+        /// <summary>每波敌人生成完毕、开始等待全灭时触发（0 为第一波）。</summary>
+        public System.Action<int> OnWaveStarted;
+
         public System.Func<Transform, SimpleEnemy> EnemyFactory { get; set; }
 
         [Tooltip("每一波敌人全灭后、下一波开始前的等待（秒，受 timeScale 影响时用 WaitForSecondsRealtime）")]
@@ -64,6 +67,8 @@ namespace BrushSpirit.LevelFlow
                         if (e != null)
                             waveRoots.Add(e.gameObject);
                     }
+
+                    OnWaveStarted?.Invoke(w);
 
                     // 不依赖 Die 回调：Destroy 后 UnityEngine.Object 与 null 比较为真，避免漏计导致协程永远等不到第二波
                     while (true)

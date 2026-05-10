@@ -30,6 +30,7 @@ namespace BrushSpirit.Player
         EquipmentHolder _equipment;
         SpriteRenderer _bodySr;
         Coroutine _hitFlashRoutine;
+        bool _deathSequenceStarted;
 
         void Awake()
         {
@@ -110,10 +111,11 @@ namespace BrushSpirit.Player
                 _hitFlashRoutine = StartCoroutine(HitFlashRoutine());
             }
 
-            if (CurrentHp <= 0f)
+            if (CurrentHp <= 0f && !_deathSequenceStarted)
             {
+                _deathSequenceStarted = true;
                 PlayerRunCarry.ClearRun();
-                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                StartCoroutine(PlayerDeathPresenter.PlayThenReload(SceneManager.GetActiveScene().name));
             }
         }
 

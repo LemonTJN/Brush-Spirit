@@ -17,15 +17,33 @@ namespace BrushSpirit.LevelFlow
         public string sectionClearTitle = "本段已肃清";
         public string sectionClearSubtitle = "准备进入下一段旅程。";
 
+        [Tooltip("为 true 时不在 Start 中开波，需调用 StartDeferredWaves()（墨林 01 序章用）。")]
+        public bool deferWaveStart;
+
         bool _bossSpawned;
+        bool _wavesBegun;
 
         void Start()
         {
             if (waves != null)
             {
                 waves.OnAllWavesCleared += OnWavesCleared;
-                waves.Begin();
+                if (!deferWaveStart)
+                    BeginWavesInternal();
             }
+        }
+
+        /// <summary>墨林 01 序章结束后再开始刷怪。</summary>
+        public void StartDeferredWaves()
+        {
+            BeginWavesInternal();
+        }
+
+        void BeginWavesInternal()
+        {
+            if (_wavesBegun || waves == null) return;
+            _wavesBegun = true;
+            waves.Begin();
         }
 
         void OnDestroy()
