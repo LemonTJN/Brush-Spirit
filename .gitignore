@@ -1,0 +1,18 @@
+# Unity 自动生成文件（必须屏蔽）
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]serSettings/
+[Ll]ocalCaches/
+
+# Visual Studio
+.vs/
+*.csproj
+*.unityproj
+*.sln
+
+# System
+.DS_Store
