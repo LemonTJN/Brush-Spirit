@@ -246,6 +246,36 @@ namespace BrushSpirit
             return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), ppu);
         }
 
+        /// <summary>
+        /// 直线斜杀特效：在敌人面向玩家一侧生成横向矩形闪光，模拟格斗游戏挥击判定框。
+        /// facingDir = +1（玩家在右）/ -1（玩家在左）/ 0（双侧，用于以自身为中心的爆炸技能）。
+        /// </summary>
+        public static void ShowAttackSlashFx(Vector2 enemyPos, float facingDir, float range,
+            float duration, Color color, float slashHeight = 0.72f)
+        {
+            float width;
+            Vector2 center;
+            if (Mathf.Approximately(facingDir, 0f))
+            {
+                width = range * 2f;
+                center = enemyPos;
+            }
+            else
+            {
+                width = range;
+                center = enemyPos + new Vector2(facingDir * range * 0.5f, 0f);
+            }
+
+            var go = new GameObject("AttackSlashFX");
+            go.transform.position = (Vector3)(Vector2)center;
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = CreatePlaceholderSprite();
+            sr.color = color;
+            sr.sortingOrder = 55;
+            go.transform.localScale = new Vector3(width, slashHeight, 1f);
+            Object.Destroy(go, duration);
+        }
+
         static Sprite MakeWhiteSprite() => CreatePlaceholderSprite();
 
         static SectionEnemyTuning DefaultEnemyTuning()

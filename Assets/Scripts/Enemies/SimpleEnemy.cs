@@ -20,8 +20,13 @@ namespace BrushSpirit.Enemies
         public EquipmentData whiteDropB;
         public Transform player;
 
+        [Tooltip("攻击前摇（红圈预警持续时长，之后才真正扣血）")]
+        public float attackWindupTime = 0.28f;
+
         float _hp;
         float _cd;
+        bool _attackPending;
+        float _windupT;
         WorldHealthBar _bar;
         float _knockVelX;
         Color _idleTint;
@@ -118,16 +123,12 @@ namespace BrushSpirit.Enemies
             {
                 float dx = delta.x;
                 transform.position += new Vector3(Mathf.Sign(dx) * moveSpeed * dt, 0f, 0f);
+                _attackPending = false;
                 _cd = Mathf.Max(0f, _cd - dt);
             }
             else
             {
-                _cd -= dt;
-                if (_cd <= 0f)
-                {
-                    TryHitPlayer();
-                    _cd = attackCooldown;
-                }
+                TickInRangeAttack(dt);
             }
         }
 
@@ -151,19 +152,16 @@ namespace BrushSpirit.Enemies
                 {
                     float dx = delta.x;
                     p.x += Mathf.Sign(dx) * moveSpeed * dt;
+                    _attackPending = false;
                 }
                 else
                 {
-                    _cd -= dt;
-                    if (_cd <= 0f)
-                    {
-                        TryHitPlayer();
-                        _cd = attackCooldown;
-                    }
+                    TickInRangeAttack(dt);
                 }
             }
             else
             {
+                _attackPending = false;
                 _cd = Mathf.Max(0f, _cd - dt);
                 p.x += _patrolDir * moveSpeed * dt;
                 if (p.x >= _platformMaxX - PatrolEdgeSlack)
@@ -188,6 +186,36 @@ namespace BrushSpirit.Enemies
             p.x = Mathf.Clamp(p.x, _platformMinX, _platformMaxX);
             p.y = _lockedY;
             transform.position = p;
+        }
+
+        void TickInRangeAttack(float dt)
+        {
+            if (_attackPending)
+            {
+                _windupT -= dt;
+                if (_windupT <= 0f)
+                {
+                    _attackPending = false;
+                    TryHitPlayer();
+                    _cd = attackCooldown;
+                }
+            }
+            else
+            {
+                _cd -= dt;
+                if (_cd <= 0f)
+                {
+                    _attackPending = true;
+                    _windupT = attackWindupTime;
+                    float dir = player != null ? Mathf.Sign(player.position.x - transform.position.x) : 1f;
+                    GameRuntimeBootstrap.ShowAttackSlashFx(
+                        transform.position,
+                        dir,
+                        attackRange,
+                        attackWindupTime,
+                        new Color(0.88f, 0.15f, 0.10f, 0.55f));
+                }
+            }
         }
 
         void TryHitPlayer()

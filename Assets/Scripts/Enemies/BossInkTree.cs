@@ -20,6 +20,7 @@ namespace BrushSpirit.Enemies
         float _hp;
         float _t;
         int _phase;
+        bool _windupFxShown;
 
         enum BossState { Chase, Windup, Slam, Recover }
         BossState _state = BossState.Chase;
@@ -109,10 +110,23 @@ namespace BrushSpirit.Enemies
                     if (_t >= interval)
                     {
                         _t = 0f;
+                        _windupFxShown = false;
                         _state = BossState.Windup;
                     }
                     break;
                 case BossState.Windup:
+                    if (!_windupFxShown)
+                    {
+                        _windupFxShown = true;
+                        // facingDir=0 → 双侧矩形，覆盖 Boss 左右各 slamRadius 范围
+                        GameRuntimeBootstrap.ShowAttackSlashFx(
+                            transform.position,
+                            0f,
+                            slamRadius,
+                            0.45f,
+                            new Color(0.95f, 0.18f, 0.08f, 0.68f),
+                            slashHeight: 1.1f);
+                    }
                     if (_t >= 0.45f)
                     {
                         _t = 0f;
