@@ -36,6 +36,7 @@ namespace BrushSpirit
 
         SpriteRenderer _backdropA;
         SpriteRenderer _backdropB;
+        SpriteRenderer _backdropC;
 
         void Awake()
         {
@@ -106,11 +107,11 @@ namespace BrushSpirit
                     };
                     break;
                 case "InkForest_03":
-                    groundWidth = 64f;
+                    groundWidth = 58f;
                     waveCounts = new List<int> { 3, 6 };
                     hasBoss = true;
-                    spawnPointCount = 4;
-                    bossSpawnX = 12f;
+                    spawnPointCount = 5;
+                    bossSpawnX = 22f;
                     playerSpawn = new Vector3(-7.5f, -2.85f, 0f);
                     enemyTune = new SectionEnemyTuning
                     {
@@ -135,10 +136,13 @@ namespace BrushSpirit
 
             BuildBackdrop(spr, sn);
             BuildGround(spr, groundWidth, sn);
+            if (sn == "InkForest_03")
+                BuildInkForest03SideArena(groundWidth);
             var platformSpawnInfos = BuildPlatforms(spr, sn);
             GameObject player = GetOrCreatePlayer(spr, playerSpawn);
             var gear = BuildEquipment();
-            var groundSpawns = BuildSpawnPoints(spawnPointCount);
+            float spawnSpan = sn == "InkForest_03" ? groundWidth * 0.58f : -1f;
+            var groundSpawns = BuildSpawnPoints(spawnPointCount, spawnSpan);
             var platformSpawns = CreateSpawnTransforms(groundSpawns[0].parent, platformSpawnInfos);
             var spawns = InterleaveSpawnLists(groundSpawns, platformSpawns);
 
@@ -174,7 +178,9 @@ namespace BrushSpirit
                 var fx = levelRoot.AddComponent<ColorRestoreEffect>();
                 fx.duration = 4.2f;
                 fx.fullscreenTint = CreateFullscreenTintImage();
-                fx.extraTargets = new[] { _backdropA, _backdropB };
+                fx.extraTargets = _backdropC != null
+                    ? new[] { _backdropA, _backdropB, _backdropC }
+                    : new[] { _backdropA, _backdropB };
                 level.colorRestore = fx;
                 var vicGo = new GameObject("VictoryUI");
                 vicGo.AddComponent<VictoryPanel>();
@@ -187,12 +193,18 @@ namespace BrushSpirit
 
             BuildHud(player);
 
-            MainCameraEnsure.Ensure(new Color(0.16f, 0.17f, 0.19f), 6.5f);
-            var cam = Camera.main;
-            if (cam != null)
+            float cameraOrtho = sn == "InkForest_03" ? 6.75f : 6.5f;
+            MainCameraEnsure.Ensure(new Color(0.16f, 0.17f, 0.19f), cameraOrtho);
+            if (sn == "InkForest_03")
+                SetupInkForest03CameraFollow(player, groundWidth);
+            else
             {
-                Vector3 p = player.transform.position;
-                cam.transform.position = new Vector3(p.x + 2.5f, p.y + 1.2f, -10f);
+                var cam = Camera.main;
+                if (cam != null)
+                {
+                    Vector3 p = player.transform.position;
+                    cam.transform.position = new Vector3(p.x + 2.5f, p.y + 1.2f, -10f);
+                }
             }
 
             PlayfieldBoundaryController.Ensure(true, 115);
@@ -302,6 +314,7 @@ namespace BrushSpirit
 
         void BuildBackdrop(Sprite spr, string sceneName)
         {
+            _backdropC = null;
             Color left, right;
             if (sceneName == "InkForest_03")
             {
@@ -313,6 +326,12 @@ namespace BrushSpirit
                 left = new Color(0.26f, 0.28f, 0.30f);
                 right = new Color(0.24f, 0.26f, 0.28f);
             }
+            else if (sceneName == "InkForest_01")
+            {
+                // 林缘：略亮灰绿，与 02/03 墨色递进
+                left = new Color(0.36f, 0.39f, 0.37f);
+                right = new Color(0.33f, 0.36f, 0.35f);
+            }
             else
             {
                 float g = 0.34f;
@@ -320,21 +339,56 @@ namespace BrushSpirit
                 right = new Color(g - 0.02f, g, g + 0.02f);
             }
 
+            float ax, ay, asx, asy, bx, by, bsx, bsy;
+            if (sceneName == "InkForest_03")
+            {
+                ax = -17.5f;
+                ay = 0.5f;
+                asx = 25f;
+                asy = 14f;
+                bx = 20f;
+                by = 1.65f;
+                bsx = 29f;
+                bsy = 17f;
+            }
+            else
+            {
+                ax = -11f;
+                ay = -0.5f;
+                asx = 22f;
+                asy = 9f;
+                bx = 12f;
+                by = -0.2f;
+                bsx = 18f;
+                bsy = 7f;
+            }
+
             var a = new GameObject("BackdropL");
-            a.transform.position = new Vector3(-11f, -0.5f, 0f);
+            a.transform.position = new Vector3(ax, ay, 0f);
             _backdropA = a.AddComponent<SpriteRenderer>();
             _backdropA.sprite = spr;
             _backdropA.color = left;
             _backdropA.sortingOrder = -12;
-            a.transform.localScale = new Vector3(22f, 9f, 1f);
+            a.transform.localScale = new Vector3(asx, asy, 1f);
 
             var b = new GameObject("BackdropR");
-            b.transform.position = new Vector3(12f, -0.2f, 0f);
+            b.transform.position = new Vector3(bx, by, 0f);
             _backdropB = b.AddComponent<SpriteRenderer>();
             _backdropB.sprite = spr;
             _backdropB.color = right;
             _backdropB.sortingOrder = -11;
-            b.transform.localScale = new Vector3(18f, 7f, 1f);
+            b.transform.localScale = new Vector3(bsx, bsy, 1f);
+
+            if (sceneName == "InkForest_03")
+            {
+                var c = new GameObject("BackdropUpper");
+                c.transform.position = new Vector3(3f, 7.8f, 0f);
+                _backdropC = c.AddComponent<SpriteRenderer>();
+                _backdropC.sprite = spr;
+                _backdropC.color = new Color(0.16f, 0.18f, 0.26f);
+                _backdropC.sortingOrder = -14;
+                c.transform.localScale = new Vector3(36f, 12f, 1f);
+            }
         }
 
         static void BuildGround(Sprite spr, float widthScale, string sceneName)
@@ -343,7 +397,9 @@ namespace BrushSpirit
                 ? new Color(0.16f, 0.17f, 0.22f)
                 : sceneName == "InkForest_02"
                     ? new Color(0.19f, 0.20f, 0.22f)
-                    : new Color(0.22f, 0.23f, 0.25f);
+                    : sceneName == "InkForest_01"
+                        ? new Color(0.245f, 0.255f, 0.268f)
+                        : new Color(0.22f, 0.23f, 0.25f);
 
             var g = new GameObject("Ground");
             g.tag = "Ground";
@@ -354,6 +410,55 @@ namespace BrushSpirit
             sr.color = c;
             sr.sortingOrder = -6;
             g.AddComponent<BoxCollider2D>();
+        }
+
+        /// <summary>树心关两侧实体挡墙（Ground），可蹬墙跳；与屏幕四边挡板不同，沿场地宽度固定。</summary>
+        static void BuildInkForest03SideArena(float groundWidth)
+        {
+            var root = new GameObject("ArenaSideWalls").transform;
+            float half = groundWidth * 0.5f - 0.32f;
+            const float midY = 2f;
+            const float wallH = 19f;
+            foreach (float sign in new[] { -1f, 1f })
+            {
+                var go = new GameObject(sign < 0f ? "ArenaWall_L" : "ArenaWall_R");
+                go.tag = "Ground";
+                go.transform.SetParent(root);
+                go.transform.position = new Vector3(sign * half, midY, 0f);
+                var box = go.AddComponent<BoxCollider2D>();
+                box.size = new Vector2(0.62f, wallH);
+            }
+        }
+
+        void SetupInkForest03CameraFollow(GameObject player, float groundWidth)
+        {
+            var cam = Camera.main;
+            if (cam == null || player == null) return;
+
+            var existing = cam.GetComponent<CameraFollowPlayer2D>();
+            if (existing != null)
+                Destroy(existing);
+
+            float aspect = Mathf.Max(0.2f, cam.aspect);
+            float halfH = cam.orthographicSize;
+            float halfW = halfH * aspect;
+            float halfArena = groundWidth * 0.5f;
+            const float margin = 0.4f;
+
+            var follow = cam.gameObject.AddComponent<CameraFollowPlayer2D>();
+            follow.target = player.transform;
+            follow.focusOffset = new Vector2(2.5f, 1.45f);
+            follow.smoothTime = 0.15f;
+            follow.minX = -halfArena + halfW - margin;
+            follow.maxX = halfArena - halfW + margin;
+            follow.minY = -4.6f;
+            follow.maxY = 9.4f;
+
+            Vector3 p = player.transform.position + (Vector3)follow.focusOffset;
+            p.z = cam.transform.position.z;
+            p.x = Mathf.Clamp(p.x, follow.minX, follow.maxX);
+            p.y = Mathf.Clamp(p.y, follow.minY, follow.maxY);
+            cam.transform.position = p;
         }
 
         /// <summary>平台样式：色相与排序微调，第三关组合最多。</summary>
@@ -459,22 +564,25 @@ namespace BrushSpirit
                     Plank(14f,  -1.35f, 4.7f, 0.80f, PlatformStyleKind.Standard,    true);
                     break;
                 case "InkForest_03":
-                    Plank(-22f, -2.12f, 2.2f, 0.72f, PlatformStyleKind.CoolSlate,   false);
-                    Plank(-16f, -1.15f, 2.85f,0.80f, PlatformStyleKind.WideMoss,    false);
-                    Plank(-9.5f,-0.42f, 1.75f,0.70f, PlatformStyleKind.NarrowRidge, false);
-                    Plank(-3f,  -1.88f, 2.4f, 0.75f, PlatformStyleKind.Standard,    false);
-                    Plank(3.5f, -0.35f, 2.1f, 0.72f, PlatformStyleKind.NarrowRidge, false);
-                    Plank(9f,   -1.65f, 2.6f, 0.78f, PlatformStyleKind.WideMoss,    false);
-                    Plank(14.5f,-0.55f, 2.2f, 0.72f, PlatformStyleKind.CoolSlate,   false);
-                    Plank(19.5f,-1.92f, 2.35f,0.75f, PlatformStyleKind.Standard,    false);
-                    Plank(24.5f,-0.78f, 1.9f, 0.70f, PlatformStyleKind.NarrowRidge, false);
-                    Plank(-12f, -2.05f, 1.65f,0.80f, PlatformStyleKind.WideMoss,    false);
-                    Plank(6f,   -2f,    2f,   0.75f, PlatformStyleKind.CoolSlate,   false);
-                    Plank(27f,  -1.45f, 2.3f, 0.75f, PlatformStyleKind.Standard,    false);
-                    Plank(-18f, -1.0f,  5.5f, 0.82f, PlatformStyleKind.WideMoss,    true);
-                    Plank(-4f,  -0.48f, 5.8f, 0.80f, PlatformStyleKind.CoolSlate,   true);
-                    Plank(10f,  -1.12f, 5.2f, 0.82f, PlatformStyleKind.Standard,    true);
-                    Plank(22f,  -0.72f, 5.6f, 0.80f, PlatformStyleKind.WideMoss,    true);
+                    // 树心区（再收窄，地面半宽约 29）
+                    Plank(-26f, -2.35f, 2.2f, 0.42f, PlatformStyleKind.Standard,    false);
+                    Plank(-19f, -1.85f, 1.9f, 0.38f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(7.5f, -2.05f, 2.5f, 0.42f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(27f,  -1.55f, 2.3f, 0.40f, PlatformStyleKind.WideMoss,    false);
+                    Plank(-3f,  -0.35f, 2f,   0.36f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(4f,   -0.65f, 2.3f, 0.38f, PlatformStyleKind.Standard,    false);
+                    Plank(14f,  -1.05f, 2.2f, 0.38f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(-23f, 0.1f,   1.55f, 0.34f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-20f, 1f,     1.5f, 0.32f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-17f, 1.9f,   1.45f, 0.32f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-1f,  3.35f,  2.9f, 0.38f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(7f,   4.4f,   2.7f, 0.36f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(16f,  5.5f,   2.85f, 0.38f, PlatformStyleKind.WideMoss,    false);
+                    Plank(-21f, -1.05f, 4.2f, 0.44f, PlatformStyleKind.WideMoss,    true);
+                    Plank(-9f,  0.4f,   4.5f, 0.44f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(3f,   1.85f,  4.6f, 0.44f, PlatformStyleKind.Standard,    true);
+                    Plank(14f,  0.3f,   4.3f, 0.44f, PlatformStyleKind.WideMoss,    true);
+                    Plank(23f,  2.7f,   4.5f, 0.44f, PlatformStyleKind.CoolSlate,   true);
                     break;
             }
 
@@ -578,11 +686,11 @@ namespace BrushSpirit
             return new GearSet { whiteA = w1, whiteB = w2, colorBoss = c };
         }
 
-        static List<Transform> BuildSpawnPoints(int count)
+        static List<Transform> BuildSpawnPoints(int count, float horizontalSpanOverride = -1f)
         {
             var root = new GameObject("SpawnPoints").transform;
             var list = new List<Transform>();
-            float span = count >= 4 ? 7.5f : 4.8f;
+            float span = horizontalSpanOverride >= 0f ? horizontalSpanOverride : (count >= 4 ? 7.5f : 4.8f);
             for (int i = 0; i < count; i++)
             {
                 float u = count <= 1 ? 0f : (i / (float)(count - 1)) * 2f - 1f;
@@ -628,6 +736,7 @@ namespace BrushSpirit
             var ec = root.AddComponent<ClampToWorldBounds2D>();
             ec.halfWidthPad = 0.52f;
             ec.halfHeightPad = 0.55f;
+            ec.clampVertical = false;
             return se;
         }
 
@@ -657,6 +766,7 @@ namespace BrushSpirit
             bc.halfWidthPad = 1.15f;
             bc.halfHeightPad = 1.35f;
             bc.skipClampWhenOutsideViewport = false;
+            bc.clampVertical = false;
             return root;
         }
 

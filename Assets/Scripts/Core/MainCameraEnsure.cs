@@ -12,7 +12,10 @@ namespace BrushSpirit.Core
         {
             var main = Camera.main;
             if (main != null && main.isActiveAndEnabled && main.gameObject.activeInHierarchy)
+            {
+                ApplySettings(main, background, orthographicSize, orthographic);
                 return;
+            }
 
             var all = Object.FindObjectsOfType<Camera>(true);
             foreach (var c in all)

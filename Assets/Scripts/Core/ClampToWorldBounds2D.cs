@@ -17,6 +17,9 @@ namespace BrushSpirit.Core
         [Tooltip("为 true 时：仅当物体在主相机视口内才钳制，避免远处关卡内单位被拽进画面")]
         public bool skipClampWhenOutsideViewport = true;
 
+        [Tooltip("为 false 时只钳制 X（小怪用）：相机纵向跟随时避免把地面怪拽离地面。")]
+        public bool clampVertical = true;
+
         void LateUpdate()
         {
             var cam = Camera.main;
@@ -38,7 +41,8 @@ namespace BrushSpirit.Core
 
             Vector3 p = transform.position;
             p.x = Mathf.Clamp(p.x, minX, maxX);
-            p.y = Mathf.Clamp(p.y, minY, maxY);
+            if (clampVertical)
+                p.y = Mathf.Clamp(p.y, minY, maxY);
             transform.position = p;
         }
     }
