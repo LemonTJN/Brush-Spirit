@@ -33,6 +33,12 @@ namespace BrushSpirit.Player
         {
             _body = GetComponent<Rigidbody2D>();
             _sprite = GetComponent<SpriteRenderer>();
+            var col = GetComponent<Collider2D>();
+            if (col != null)
+            {
+                var pm = new PhysicsMaterial2D("PlayerNoWallStick") { friction = 0f, bounciness = 0f };
+                col.sharedMaterial = pm;
+            }
 
             if (groundCheck == null)
             {
@@ -74,12 +80,35 @@ namespace BrushSpirit.Player
             return false;
         }
 
+        /// <summary>
+        /// 仅当脚下有「朝上的支撑面」时算着地。OverlapCircle 贴在平台竖直面时也会与同一 BoxCollider 相交，
+        /// 会误判 grounded → onWall 失效，按住方向键会持续 vx 顶墙被摩擦卡死。
+        /// </summary>
+        bool IsFeetOnSupport()
+        {
+            Vector2 origin = (Vector2)groundCheck.position + Vector2.up * 0.04f;
+            float dist = groundCheckRadius + 0.14f;
+            float castR = groundCheckRadius * 0.82f;
+            var hits = Physics2D.CircleCastAll(origin, castR, Vector2.down, dist);
+            for (int i = 0; i < hits.Length; i++)
+            {
+                var h = hits[i];
+                if (h.collider == null || !h.collider.CompareTag("Ground")) continue;
+                if (h.collider.attachedRigidbody == _body) continue;
+                // 竖壁/侧向挤压的法线接近水平，排除；台面法线朝上
+                if (h.normal.y > 0.45f)
+                    return true;
+            }
+
+            return false;
+        }
+
         void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
             if (_wallJumpLockX > 0f) _wallJumpLockX -= dt;
 
-            bool grounded = TouchesGround(groundCheck.position, groundCheckRadius);
+            bool grounded = IsFeetOnSupport();
             bool wallL    = TouchesGround(_wallCheckL.position, wallCheckRadius);
             bool wallR    = TouchesGround(_wallCheckR.position, wallCheckRadius);
 
@@ -93,7 +122,17 @@ namespace BrushSpirit.Player
 
             // 水平速度：蹬墙跳锁定期间不覆盖，让弹出冲量生效
             if (_wallJumpLockX <= 0f)
-                v.x = _inputX * moveSpeed;
+            {
+                float targetVx = _inputX * moveSpeed;
+                // 持续向墙内施加速率会与 2D 碰撞解算摩擦，易把垂直速度卡在 0；只允许离开墙的方向
+                if (onWall)
+                {
+                    if (wallDir > 0 && targetVx > 0f) targetVx = 0f;
+                    else if (wallDir < 0 && targetVx < 0f) targetVx = 0f;
+                }
+
+                v.x = targetVx;
+            }
 
             // 跳跃处理
             if (_jumpQueued)
@@ -113,8 +152,8 @@ namespace BrushSpirit.Player
                 }
             }
 
-            // 滑墙：限制下落不超过 wallSlideSpeed
-            if (sliding && v.y < -wallSlideSpeed)
+            // 滑墙：匀速缓慢下落（按住贴墙键时不再被摩擦卡在 vy≈0）；上升阶段不覆盖（蹬墙跳等）
+            if (sliding && v.y <= 0f)
                 v.y = -wallSlideSpeed;
 
             _body.velocity = v;
