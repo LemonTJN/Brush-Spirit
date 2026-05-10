@@ -443,38 +443,38 @@ namespace BrushSpirit
             switch (sceneName)
             {
                 case "InkForest_01":
-                    Plank(-15f, -2f, 2.5f, 0.4f, PlatformStyleKind.Standard, false);
-                    Plank(-3f, -1.05f, 2.4f, 0.38f, PlatformStyleKind.CoolSlate, false);
-                    Plank(12f, -1.72f, 2.6f, 0.42f, PlatformStyleKind.WideMoss, false);
-                    Plank(-11.5f, -1.02f, 4.85f, 0.44f, PlatformStyleKind.WideMoss, true);
-                    Plank(5.5f, -0.88f, 5.2f, 0.42f, PlatformStyleKind.CoolSlate, true);
+                    Plank(-15f, -2f,   2.5f, 0.75f, PlatformStyleKind.Standard,    false);
+                    Plank(-3f,  -1.05f, 2.4f, 0.72f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(12f,  -1.72f, 2.6f, 0.78f, PlatformStyleKind.WideMoss,    false);
+                    Plank(-11.5f,-1.02f,4.85f,0.80f, PlatformStyleKind.WideMoss,    true);
+                    Plank(5.5f, -0.88f, 5.2f, 0.78f, PlatformStyleKind.CoolSlate,   true);
                     break;
                 case "InkForest_02":
-                    Plank(-17f, -1.9f, 2.5f, 0.4f, PlatformStyleKind.Standard, false);
-                    Plank(-5f, -0.85f, 2.5f, 0.38f, PlatformStyleKind.NarrowRidge, false);
-                    Plank(6f, -1.82f, 2.6f, 0.42f, PlatformStyleKind.WideMoss, false);
-                    Plank(17f, -0.5f, 2.4f, 0.36f, PlatformStyleKind.CoolSlate, false);
-                    Plank(-12f, -1.08f, 5f, 0.45f, PlatformStyleKind.WideMoss, true);
-                    Plank(1f, -0.62f, 5.4f, 0.42f, PlatformStyleKind.CoolSlate, true);
-                    Plank(14f, -1.35f, 4.7f, 0.44f, PlatformStyleKind.Standard, true);
+                    Plank(-17f, -1.9f,  2.5f, 0.75f, PlatformStyleKind.Standard,    false);
+                    Plank(-5f,  -0.85f, 2.5f, 0.72f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(6f,   -1.82f, 2.6f, 0.78f, PlatformStyleKind.WideMoss,    false);
+                    Plank(17f,  -0.5f,  2.4f, 0.72f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(-12f, -1.08f, 5f,   0.82f, PlatformStyleKind.WideMoss,    true);
+                    Plank(1f,   -0.62f, 5.4f, 0.80f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(14f,  -1.35f, 4.7f, 0.80f, PlatformStyleKind.Standard,    true);
                     break;
                 case "InkForest_03":
-                    Plank(-22f, -2.12f, 2.2f, 0.36f, PlatformStyleKind.CoolSlate, false);
-                    Plank(-16f, -1.15f, 2.85f, 0.5f, PlatformStyleKind.WideMoss, false);
-                    Plank(-9.5f, -0.42f, 1.75f, 0.32f, PlatformStyleKind.NarrowRidge, false);
-                    Plank(-3f, -1.88f, 2.4f, 0.42f, PlatformStyleKind.Standard, false);
-                    Plank(3.5f, -0.35f, 2.1f, 0.34f, PlatformStyleKind.NarrowRidge, false);
-                    Plank(9f, -1.65f, 2.6f, 0.44f, PlatformStyleKind.WideMoss, false);
-                    Plank(14.5f, -0.55f, 2.2f, 0.38f, PlatformStyleKind.CoolSlate, false);
-                    Plank(19.5f, -1.92f, 2.35f, 0.4f, PlatformStyleKind.Standard, false);
-                    Plank(24.5f, -0.78f, 1.9f, 0.33f, PlatformStyleKind.NarrowRidge, false);
-                    Plank(-12f, -2.05f, 1.65f, 0.48f, PlatformStyleKind.WideMoss, false);
-                    Plank(6f, -2f, 2f, 0.37f, PlatformStyleKind.CoolSlate, false);
-                    Plank(27f, -1.45f, 2.3f, 0.41f, PlatformStyleKind.Standard, false);
-                    Plank(-18f, -1.0f, 5.5f, 0.46f, PlatformStyleKind.WideMoss, true);
-                    Plank(-4f, -0.48f, 5.8f, 0.42f, PlatformStyleKind.CoolSlate, true);
-                    Plank(10f, -1.12f, 5.2f, 0.45f, PlatformStyleKind.Standard, true);
-                    Plank(22f, -0.72f, 5.6f, 0.43f, PlatformStyleKind.WideMoss, true);
+                    Plank(-22f, -2.12f, 2.2f, 0.72f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(-16f, -1.15f, 2.85f,0.80f, PlatformStyleKind.WideMoss,    false);
+                    Plank(-9.5f,-0.42f, 1.75f,0.70f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-3f,  -1.88f, 2.4f, 0.75f, PlatformStyleKind.Standard,    false);
+                    Plank(3.5f, -0.35f, 2.1f, 0.72f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(9f,   -1.65f, 2.6f, 0.78f, PlatformStyleKind.WideMoss,    false);
+                    Plank(14.5f,-0.55f, 2.2f, 0.72f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(19.5f,-1.92f, 2.35f,0.75f, PlatformStyleKind.Standard,    false);
+                    Plank(24.5f,-0.78f, 1.9f, 0.70f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-12f, -2.05f, 1.65f,0.80f, PlatformStyleKind.WideMoss,    false);
+                    Plank(6f,   -2f,    2f,   0.75f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(27f,  -1.45f, 2.3f, 0.75f, PlatformStyleKind.Standard,    false);
+                    Plank(-18f, -1.0f,  5.5f, 0.82f, PlatformStyleKind.WideMoss,    true);
+                    Plank(-4f,  -0.48f, 5.8f, 0.80f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(10f,  -1.12f, 5.2f, 0.82f, PlatformStyleKind.Standard,    true);
+                    Plank(22f,  -0.72f, 5.6f, 0.80f, PlatformStyleKind.WideMoss,    true);
                     break;
             }
 

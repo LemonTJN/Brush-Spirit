@@ -8,15 +8,15 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Menu.scene
     guid: a1b2c3d4e5f6677889900aabbccdde01
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/InkForest_01.scene
-    guid: 14b205e966cb2fe418882e75dd04e166
-  - enabled: 1
+    guid: 00000000000000000000000000000000
+  - enabled: 0
     path: Assets/Scenes/InkForest_02.scene
-    guid: 4b385511fedc3b847befb2eacafe308a
-  - enabled: 1
+    guid: 00000000000000000000000000000000
+  - enabled: 0
     path: Assets/Scenes/InkForest_03.scene
-    guid: f1a2b3c4d5e6478901234567890abcd03
+    guid: 00000000000000000000000000000000
   - enabled: 0
     path: Assets/Scenes/InkForest.scene
     guid: a1b2c3d4e5f6677889900aabbccdde02
