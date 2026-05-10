@@ -161,6 +161,12 @@ namespace BrushSpirit
             level.sectionClearTitle = clearTitle;
             level.sectionClearSubtitle = clearSub;
 
+            if (sn == "InkForest_01")
+            {
+                level.deferWaveStart = true;
+                levelRoot.AddComponent<InkForest01Director>();
+            }
+
             if (hasBoss)
             {
                 level.bossTemplate = CreateBossTemplate(spr, gear.colorBoss, bossTune);

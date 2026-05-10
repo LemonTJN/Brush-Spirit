@@ -1,6 +1,7 @@
 using BrushSpirit.Core;
 using BrushSpirit.Player;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using GameBootstrap = BrushSpirit.GameRuntimeBootstrap;
 
 namespace BrushSpirit.Items
@@ -10,6 +11,8 @@ namespace BrushSpirit.Items
     {
         public EquipmentData data;
         [SerializeField] float rotateSpeed = 120f;
+
+        static bool s_firstDropHighlightPending01 = true;
 
         public static Pickup SpawnAt(Vector3 position, EquipmentData equipment)
         {
@@ -28,6 +31,13 @@ namespace BrushSpirit.Items
             clamp.halfWidthPad = 0.42f;
             clamp.halfHeightPad = 0.42f;
             clamp.skipClampWhenOutsideViewport = false;
+
+            if (SceneManager.GetActiveScene().name == "InkForest_01" && s_firstDropHighlightPending01)
+            {
+                s_firstDropHighlightPending01 = false;
+                go.AddComponent<PickupFirstHighlight>();
+            }
+
             return p;
         }
 
