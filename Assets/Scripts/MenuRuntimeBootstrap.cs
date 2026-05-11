@@ -67,12 +67,12 @@ namespace BrushSpirit
             var b1 = panel.Find("Level1Button")?.GetComponent<Button>();
             var b2 = panel.Find("Level2Button")?.GetComponent<Button>();
             var b3 = panel.Find("Level3Button")?.GetComponent<Button>();
-            SetLevelButton(b1, unlocked >= 1, "墨林");
-            SetLevelButton(b2, unlocked >= 2, "余烬谷");
-            SetLevelButton(b3, unlocked >= 3, "画心");
+            SetLevelButton(b1, unlocked >= 1, "墨林", 1);
+            SetLevelButton(b2, unlocked >= 2, "余烬谷", 2);
+            SetLevelButton(b3, unlocked >= 3, "画心", 3);
         }
 
-        static void SetLevelButton(Button btn, bool unlocked, string name)
+        static void SetLevelButton(Button btn, bool unlocked, string name, int levelIndex)
         {
             if (btn == null) return;
             btn.interactable = unlocked;
@@ -81,7 +81,14 @@ namespace BrushSpirit
                 txt.text = unlocked ? name : name + "（未解锁）";
             btn.onClick.RemoveAllListeners();
             if (unlocked)
-                btn.onClick.AddListener(() => SceneManager.LoadScene("InkForest_01"));
+            {
+                int lv = levelIndex;
+                btn.onClick.AddListener(() =>
+                {
+                    string scene = lv == 1 ? "InkForest_01" : lv == 2 ? "EmberValley_01" : "InkForest_01";
+                    SceneManager.LoadScene(scene);
+                });
+            }
         }
 
         static GameObject CreatePanel(Transform parent, string name)
@@ -174,7 +181,14 @@ namespace BrushSpirit
 
             btn.onClick.RemoveAllListeners();
             if (unlocked)
-                btn.onClick.AddListener(() => SceneManager.LoadScene("InkForest_01"));
+            {
+                int lv = level;
+                btn.onClick.AddListener(() =>
+                {
+                    string scene = lv == 1 ? "InkForest_01" : lv == 2 ? "EmberValley_01" : "InkForest_01";
+                    SceneManager.LoadScene(scene);
+                });
+            }
         }
     }
 }

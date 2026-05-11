@@ -146,16 +146,112 @@ namespace BrushSpirit
                         slamDamage = 32f
                     };
                     break;
+                case "EmberValley_01":
+                    groundWidth = 44f;
+                    waveCounts = new List<int> { 2, 3, 3 };
+                    hasBoss = false;
+                    nextScene = "EmberValley_02";
+                    clearTitle = "烬谷 · 烬口 已肃清";
+                    clearSub = "峡道更窄了，焚道在前。";
+                    spawnPointCount = 5;
+                    bossSpawnX = 12f;
+                    playerSpawn = new Vector3(-6.5f, -2.85f, 0f);
+                    enemyTune = new SectionEnemyTuning
+                    {
+                        maxHp = 34f,
+                        moveSpeed = 1.92f,
+                        attackDamage = 4.1f,
+                        attackCooldown = 0.95f,
+                        attackRange = 2.55f,
+                        xpReward = 12,
+                        visualScale = 0.9f,
+                        tint = new Color(0.22f, 0.16f, 0.14f),
+                        waveGap = 0.28f
+                    };
+                    break;
+                case "EmberValley_02":
+                    groundWidth = 38f;
+                    waveCounts = new List<int> { 3, 4, 4 };
+                    hasBoss = false;
+                    nextScene = "EmberValley_03";
+                    clearTitle = "烬谷 · 焚道 已肃清";
+                    clearSub = "谷底有东西在烧——焰心已近。";
+                    spawnPointCount = 6;
+                    bossSpawnX = 10f;
+                    playerSpawn = new Vector3(-5.5f, -2.85f, 0f);
+                    enemyTune = new SectionEnemyTuning
+                    {
+                        maxHp = 40f,
+                        moveSpeed = 2.05f,
+                        attackDamage = 4.8f,
+                        attackCooldown = 0.82f,
+                        attackRange = 2.62f,
+                        xpReward = 14,
+                        visualScale = 0.92f,
+                        tint = new Color(0.2f, 0.14f, 0.12f),
+                        waveGap = 0.22f
+                    };
+                    break;
+                case "EmberValley_03":
+                    groundWidth = 58f;
+                    waveCounts = new List<int> { 3, 6 };
+                    hasBoss = true;
+                    spawnPointCount = 6;
+                    bossSpawnX = 22f;
+                    playerSpawn = new Vector3(-7.5f, -2.85f, 0f);
+                    enemyTune = new SectionEnemyTuning
+                    {
+                        maxHp = 52f,
+                        moveSpeed = 2.55f,
+                        attackDamage = 6.2f,
+                        attackCooldown = 0.68f,
+                        attackRange = 2.9f,
+                        xpReward = 18,
+                        visualScale = 1.08f,
+                        tint = new Color(0.09f, 0.09f, 0.13f),
+                        waveGap = 1.1f
+                    };
+                    bossTune = new SectionBossTuning
+                    {
+                        maxHp = 260f,
+                        moveSpeed = 2.85f,
+                        slamDamage = 32f
+                    };
+                    break;
             }
+
+            EmberValleyAshBurstSpawner ember03AshSpawner = null;
 
             BuildBackdrop(spr, sn);
             BuildGround(spr, groundWidth, sn);
+            if (sn == "EmberValley_02")
+            {
+                BuildEmberValley02SideArena(groundWidth);
+                BuildEmberValley02ThinCinders(spr, groundWidth);
+            }
+
+            if (sn == "EmberValley_01")
+                BuildEmberValley01CinderPatches(spr, groundWidth);
             if (sn == "InkForest_03")
                 BuildInkForest03SideArena(groundWidth);
+            if (sn == "EmberValley_03")
+                BuildInkForest03SideArena(groundWidth, 2.45f, 24f);
+            if (sn == "EmberValley_01")
+                BuildEmberValley01SideArena(groundWidth);
             var platformSpawnInfos = BuildPlatforms(spr, sn);
+            if (sn == "EmberValley_02")
+                BuildEmberValley02PlatformCinders(spr);
+            if (sn == "EmberValley_03")
+                BuildEmberValley03PlatformCinders(spr);
             GameObject player = GetOrCreatePlayer(spr, playerSpawn);
             var gear = BuildEquipment();
-            float spawnSpan = sn == "InkForest_03" ? groundWidth * 0.58f : -1f;
+            float spawnSpan = sn == "InkForest_03" || sn == "EmberValley_03"
+                ? groundWidth * 0.58f
+                : sn == "EmberValley_01"
+                    ? groundWidth * 0.52f
+                    : sn == "EmberValley_02"
+                        ? groundWidth * 0.42f
+                        : -1f;
             var groundSpawns = BuildSpawnPoints(spawnPointCount, spawnSpan);
             var platformSpawns = CreateSpawnTransforms(groundSpawns[0].parent, platformSpawnInfos);
             var spawns = InterleaveSpawnLists(groundSpawns, platformSpawns);
@@ -179,10 +275,32 @@ namespace BrushSpirit
             level.sectionClearTitle = clearTitle;
             level.sectionClearSubtitle = clearSub;
 
+            if (sn == "EmberValley_03")
+            {
+                var ashGo = new GameObject("AshBurstSpawner");
+                ember03AshSpawner = ashGo.AddComponent<EmberValleyAshBurstSpawner>();
+                float halfEv3 = groundWidth * 0.5f - 3.2f;
+                // 清波阶段略疏；Boss 出现后冷却明显缩短，并配合连发（见 Spawner）
+                ember03AshSpawner.ConfigureWithBossPhase(spr, -halfEv3, halfEv3, -3.12f, 2.75f, 4.35f, 0.72f, 1.25f);
+            }
+
             if (sn == "InkForest_01")
             {
                 level.deferWaveStart = true;
                 levelRoot.AddComponent<InkForest01Director>();
+            }
+
+            if (sn == "EmberValley_01")
+            {
+                level.deferWaveStart = true;
+                levelRoot.AddComponent<EmberValley01Director>();
+            }
+
+            if (sn == "EmberValley_02")
+            {
+                level.deferWaveStart = true;
+                levelRoot.AddComponent<EmberValley02Director>();
+                levelRoot.AddComponent<EmberValley02SmokeOverlay>();
             }
 
             if (hasBoss)
@@ -196,6 +314,22 @@ namespace BrushSpirit
                     ? new[] { _backdropA, _backdropB, _backdropC }
                     : new[] { _backdropA, _backdropB };
                 level.colorRestore = fx;
+                if (sn == "EmberValley_03")
+                {
+                    fx.useCustomPalette = true;
+                    fx.customStartTint = new Color(0.14f, 0.1f, 0.1f, 0.82f);
+                    fx.customEndTint = new Color(0.78f, 0.32f, 0.18f, 0.12f);
+                    fx.customStartSprite = new Color(0.36f, 0.28f, 0.26f);
+                    fx.customEndSprite = new Color(0.85f, 0.48f, 0.32f);
+                    VictoryPanel.PendingVictoryTitle = "烬谷 · 赤色归来";
+                    VictoryPanel.PendingUnlockLevel = 3;
+                }
+                else
+                {
+                    VictoryPanel.PendingVictoryTitle = null;
+                    VictoryPanel.PendingUnlockLevel = 0;
+                }
+
                 var vicGo = new GameObject("VictoryUI");
                 vicGo.AddComponent<VictoryPanel>();
             }
@@ -205,12 +339,32 @@ namespace BrushSpirit
                 level.colorRestore = null;
             }
 
+            if (ember03AshSpawner != null && hasBoss)
+                level.OnBossSpawned += () => ember03AshSpawner.SetBossPhase(true);
+
             BuildHud(player);
 
-            float cameraOrtho = sn == "InkForest_03" ? 6.75f : 6.5f;
-            MainCameraEnsure.Ensure(new Color(0.16f, 0.17f, 0.19f), cameraOrtho);
-            if (sn == "InkForest_03")
-                SetupInkForest03CameraFollow(player, groundWidth);
+            bool emberVertical = sn == "EmberValley_01" || sn == "EmberValley_02" || sn == "EmberValley_03";
+            float cameraOrtho = sn == "InkForest_03" || emberVertical ? 6.75f : 6.5f;
+            Color clearBg = sn == "EmberValley_03"
+                ? new Color(0.22f, 0.15f, 0.14f)
+                : sn == "EmberValley_02"
+                    ? new Color(0.2f, 0.16f, 0.15f)
+                    : sn == "EmberValley_01"
+                        ? new Color(0.24f, 0.19f, 0.17f)
+                        : new Color(0.16f, 0.17f, 0.19f);
+            MainCameraEnsure.Ensure(clearBg, cameraOrtho);
+            if (sn == "InkForest_03" || emberVertical)
+            {
+                float yMax = sn == "EmberValley_01"
+                    ? 14.6f
+                    : sn == "EmberValley_02"
+                        ? 15.2f
+                        : sn == "EmberValley_03"
+                            ? 15.8f
+                            : 9.4f;
+                SetupCameraFollowArena(player, groundWidth, -5.15f, yMax);
+            }
             else
             {
                 var cam = Camera.main;
@@ -219,6 +373,14 @@ namespace BrushSpirit
                     Vector3 p = player.transform.position;
                     cam.transform.position = new Vector3(p.x + 2.5f, p.y + 1.2f, -10f);
                 }
+            }
+
+            if (sn == "EmberValley_02")
+            {
+                var ashGo = new GameObject("AshBurstSpawner");
+                var spawner = ashGo.AddComponent<EmberValleyAshBurstSpawner>();
+                float half = groundWidth * 0.5f - 3.2f;
+                spawner.Configure(spr, -half, half, -3.12f, 2.45f, 4.05f);
             }
 
             PlayfieldBoundaryController.Ensure(true, 115);
@@ -346,6 +508,21 @@ namespace BrushSpirit
                 left = new Color(0.36f, 0.39f, 0.37f);
                 right = new Color(0.33f, 0.36f, 0.35f);
             }
+            else if (sceneName == "EmberValley_01")
+            {
+                left = new Color(0.34f, 0.30f, 0.28f);
+                right = new Color(0.27f, 0.24f, 0.24f);
+            }
+            else if (sceneName == "EmberValley_02")
+            {
+                left = new Color(0.26f, 0.22f, 0.22f);
+                right = new Color(0.2f, 0.17f, 0.18f);
+            }
+            else if (sceneName == "EmberValley_03")
+            {
+                left = new Color(0.26f, 0.16f, 0.15f);
+                right = new Color(0.2f, 0.13f, 0.14f);
+            }
             else
             {
                 float g = 0.34f;
@@ -354,16 +531,39 @@ namespace BrushSpirit
             }
 
             float ax, ay, asx, asy, bx, by, bsx, bsy;
-            if (sceneName == "InkForest_03")
+            if (sceneName == "InkForest_03" || sceneName == "EmberValley_03")
             {
+                bool evBoss = sceneName == "EmberValley_03";
                 ax = -17.5f;
-                ay = 0.5f;
+                ay = evBoss ? 0.65f : 0.5f;
                 asx = 25f;
-                asy = 14f;
+                asy = evBoss ? 15.6f : 14f;
                 bx = 20f;
-                by = 1.65f;
+                by = evBoss ? 1.85f : 1.65f;
                 bsx = 29f;
-                bsy = 17f;
+                bsy = evBoss ? 18.2f : 17f;
+            }
+            else if (sceneName == "EmberValley_01")
+            {
+                ax = -10f;
+                ay = 0.35f;
+                asx = 22.5f;
+                asy = 11.2f;
+                bx = 10.5f;
+                by = 0.55f;
+                bsx = 20f;
+                bsy = 11.8f;
+            }
+            else if (sceneName == "EmberValley_02")
+            {
+                ax = -8.5f;
+                ay = 0.15f;
+                asx = 18.5f;
+                asy = 11.5f;
+                bx = 8.5f;
+                by = 0.2f;
+                bsx = 17f;
+                bsy = 12f;
             }
             else
             {
@@ -381,8 +581,20 @@ namespace BrushSpirit
             {
                 // 单张水墨背景模式：用 Sprite 原始宽高比覆盖整个游戏区域，不再分 L/R/Upper 拼接
                 Vector2 spriteSize = backgroundSprite.bounds.size; // 单位：world units
-                float sceneHalfWidth = sceneName == "InkForest_03" ? 30f : 24f;
-                float sceneHalfHeight = sceneName == "InkForest_03" ? 11f : 7.5f;
+                float sceneHalfWidth = sceneName == "InkForest_03" || sceneName == "EmberValley_03"
+                    ? 30f
+                    : sceneName == "EmberValley_02"
+                        ? 18.5f
+                        : sceneName == "EmberValley_01"
+                            ? 22f
+                            : 24f;
+                float sceneHalfHeight = sceneName == "InkForest_03" || sceneName == "EmberValley_03"
+                    ? 11f
+                    : sceneName == "EmberValley_02"
+                        ? 10.5f
+                        : sceneName == "EmberValley_01"
+                            ? 10.2f
+                            : 7.5f;
                 float scaleByW = (sceneHalfWidth * 2f) / Mathf.Max(0.01f, spriteSize.x);
                 float scaleByH = (sceneHalfHeight * 2f) / Mathf.Max(0.01f, spriteSize.y);
                 float fitScale = Mathf.Max(scaleByW, scaleByH); // 用较大值保证完全覆盖、不留空白边
@@ -416,15 +628,18 @@ namespace BrushSpirit
             _backdropB.sortingOrder = -11;
             b.transform.localScale = new Vector3(bsx, bsy, 1f);
 
-            if (sceneName == "InkForest_03")
+            if (sceneName == "InkForest_03" || sceneName == "EmberValley_03")
             {
                 var c = new GameObject("BackdropUpper");
-                c.transform.position = new Vector3(3f, 7.8f, 0f);
+                bool evBoss = sceneName == "EmberValley_03";
+                c.transform.position = new Vector3(3f, evBoss ? 8.4f : 7.8f, 0f);
                 _backdropC = c.AddComponent<SpriteRenderer>();
                 _backdropC.sprite = spr;
-                _backdropC.color = new Color(0.16f, 0.18f, 0.26f);
+                _backdropC.color = sceneName == "EmberValley_03"
+                    ? new Color(0.18f, 0.1f, 0.12f)
+                    : new Color(0.16f, 0.18f, 0.26f);
                 _backdropC.sortingOrder = -14;
-                c.transform.localScale = new Vector3(36f, 12f, 1f);
+                c.transform.localScale = new Vector3(36f, evBoss ? 13.5f : 12f, 1f);
                 if (backgroundSprite != null)
                 {
                     _backdropC.sprite = backgroundSprite;
@@ -441,7 +656,13 @@ namespace BrushSpirit
                     ? new Color(0.19f, 0.20f, 0.22f)
                     : sceneName == "InkForest_01"
                         ? new Color(0.245f, 0.255f, 0.268f)
-                        : new Color(0.22f, 0.23f, 0.25f);
+                        : sceneName == "EmberValley_01"
+                            ? new Color(0.26f, 0.22f, 0.21f)
+                            : sceneName == "EmberValley_02"
+                                ? new Color(0.22f, 0.19f, 0.18f)
+                                : sceneName == "EmberValley_03"
+                                    ? new Color(0.2f, 0.17f, 0.18f)
+                                    : new Color(0.22f, 0.23f, 0.25f);
 
             var g = new GameObject("Ground");
             g.tag = "Ground";
@@ -459,13 +680,192 @@ namespace BrushSpirit
             g.AddComponent<BoxCollider2D>();
         }
 
+        /// <summary>烬口：地面余烬带（触发伤害），视觉为半透明暗红裂纹。</summary>
+        static void BuildEmberValley01CinderPatches(Sprite spr, float groundWidth)
+        {
+            var root = new GameObject("CinderHazardRoot").transform;
+
+            void Patch(float centerX, float widthWorld, float heightWorld)
+            {
+                var go = new GameObject("CinderPatch");
+                go.layer = 0;
+                go.transform.SetParent(root);
+                go.transform.position = new Vector3(centerX, -3.58f, 0f);
+                go.transform.localScale = new Vector3(widthWorld, heightWorld, 1f);
+                var sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = spr;
+                sr.color = new Color(0.58f, 0.14f, 0.09f, 0.44f);
+                sr.sortingOrder = -4;
+                var box = go.AddComponent<BoxCollider2D>();
+                box.isTrigger = true;
+                go.AddComponent<EmberCinderZone>();
+            }
+
+            float half = groundWidth * 0.5f - 2.5f;
+            Patch(-11f, 4.2f, 0.48f);
+            Patch(1.2f, 5f, 0.48f);
+            Patch(Mathf.Min(12.5f, half - 2f), 3.6f, 0.48f);
+        }
+
+        /// <summary>烬口：侧壁（可蹬墙），与纵向多层平台对齐。</summary>
+        static void BuildEmberValley01SideArena(float groundWidth)
+        {
+            var root = new GameObject("Ember01SideWalls").transform;
+            float half = groundWidth * 0.5f - 0.3f;
+            const float midY = 1.45f;
+            const float wallH = 20f;
+            foreach (float sign in new[] { -1f, 1f })
+            {
+                var go = new GameObject(sign < 0f ? "Ember01Wall_L" : "Ember01Wall_R");
+                go.tag = "Ground";
+                go.transform.SetParent(root);
+                go.transform.position = new Vector3(sign * half, midY, 0f);
+                var box = go.AddComponent<BoxCollider2D>();
+                box.size = new Vector2(0.55f, wallH);
+            }
+        }
+
+        static void BuildEmberValley02SideArena(float groundWidth)
+        {
+            var root = new GameObject("EmberNarrowWalls").transform;
+            float half = groundWidth * 0.5f - 0.28f;
+            const float midY = 2.05f;
+            const float wallH = 24f;
+            foreach (float sign in new[] { -1f, 1f })
+            {
+                var go = new GameObject(sign < 0f ? "EmberWall_L" : "EmberWall_R");
+                go.tag = "Ground";
+                go.transform.SetParent(root);
+                go.transform.position = new Vector3(sign * half, midY, 0f);
+                var box = go.AddComponent<BoxCollider2D>();
+                box.size = new Vector2(0.55f, wallH);
+            }
+        }
+
+        /// <summary>焚道：少量贴地余烬带，与爆灰叠加施压。</summary>
+        static void BuildEmberValley02ThinCinders(Sprite spr, float groundWidth)
+        {
+            var root = new GameObject("CinderHazardRoot_02").transform;
+
+            void Patch(float centerX, float widthWorld, float heightWorld)
+            {
+                var go = new GameObject("CinderPatch");
+                go.layer = 0;
+                go.transform.SetParent(root);
+                go.transform.position = new Vector3(centerX, -3.58f, 0f);
+                go.transform.localScale = new Vector3(widthWorld, heightWorld, 1f);
+                var sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = spr;
+                sr.color = new Color(0.52f, 0.12f, 0.08f, 0.38f);
+                sr.sortingOrder = -4;
+                var box = go.AddComponent<BoxCollider2D>();
+                box.isTrigger = true;
+                go.AddComponent<EmberCinderZone>();
+            }
+
+            float half = groundWidth * 0.5f - 2f;
+            Patch(-7f, 2.8f, 0.42f);
+            Patch(Mathf.Min(7.5f, half - 1.5f), 2.6f, 0.42f);
+        }
+
+        /// <summary>焚道：部分平台顶有余烬带（与 <see cref="BuildPlatforms"/> 坐标对齐，错落约半数以留出安全台）。</summary>
+        static void BuildEmberValley02PlatformCinders(Sprite spr)
+        {
+            var root = new GameObject("CinderPlatformRoot_02").transform;
+            var tint = new Color(0.52f, 0.12f, 0.08f, 0.42f);
+            const int sortOrder = 2;
+
+            void Strip(float platX, float platY, float platW, float platH, float widthMul, float xOffset = 0f)
+            {
+                float top = platY + platH * 0.5f;
+                const float stripH = 0.2f;
+                float stripW = Mathf.Max(0.35f, platW * widthMul);
+                float cx = platX + xOffset;
+                float cy = top - stripH * 0.5f + 0.03f;
+                var go = new GameObject("CinderPlatformStrip");
+                go.layer = 0;
+                go.transform.SetParent(root);
+                go.transform.position = new Vector3(cx, cy, 0f);
+                go.transform.localScale = new Vector3(stripW, stripH, 1f);
+                var sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = spr;
+                sr.color = tint;
+                sr.sortingOrder = sortOrder;
+                var box = go.AddComponent<BoxCollider2D>();
+                box.isTrigger = true;
+                go.AddComponent<EmberCinderZone>();
+            }
+
+            // 无：底层 -16 / 5；长台 4；中转 -2.5、12；窄台 -12、13；长台 -4 仅一侧；顶层 1 仅一条
+            Strip(-5f, -1.2f, 1.8f, 0.65f, 0.48f, 0.15f);
+            Strip(15f, -2f, 1.75f, 0.66f, 0.5f);
+            Strip(-10f, -0.82f, 3.6f, 0.76f, 0.44f, 0f);
+            Strip(-14f, 2.05f, 2.2f, 0.66f, 0.48f);
+            Strip(-6f, 2.9f, 3.4f, 0.74f, 0.4f, 0.15f);
+            Strip(7f, 3.1f, 3.2f, 0.74f, 0.42f, -0.35f);
+            Strip(2f, 4.5f, 1.7f, 0.6f, 0.48f);
+            Strip(-4f, 5.6f, 3.2f, 0.72f, 0.38f, 0.55f);
+            Strip(8f, 5.85f, 3f, 0.72f, 0.42f, 0f);
+            Strip(1f, 7f, 2.8f, 0.7f, 0.48f, 0f);
+        }
+
+        /// <summary>焰心：部分平台顶有余烬带（与 <see cref="BuildPlatforms"/> 坐标对齐，长台亦只覆盖部分段落）。</summary>
+        static void BuildEmberValley03PlatformCinders(Sprite spr)
+        {
+            var root = new GameObject("CinderPlatformRoot_03").transform;
+            var tint = new Color(0.56f, 0.13f, 0.09f, 0.45f);
+            const int sortOrder = 2;
+
+            void Strip(float platX, float platY, float platW, float platH, float widthMul, float xOffset = 0f)
+            {
+                float top = platY + platH * 0.5f;
+                const float stripH = 0.16f;
+                float stripW = Mathf.Max(0.28f, platW * widthMul);
+                float cx = platX + xOffset;
+                float cy = top - stripH * 0.5f + 0.02f;
+                var go = new GameObject("CinderPlatformStrip");
+                go.layer = 0;
+                go.transform.SetParent(root);
+                go.transform.position = new Vector3(cx, cy, 0f);
+                go.transform.localScale = new Vector3(stripW, stripH, 1f);
+                var sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = spr;
+                sr.color = tint;
+                sr.sortingOrder = sortOrder;
+                var box = go.AddComponent<BoxCollider2D>();
+                box.isTrigger = true;
+                go.AddComponent<EmberCinderZone>();
+            }
+
+            void StripPair(float platX, float platY, float platW, float platH, float widthMul)
+            {
+                float off = platW * 0.22f;
+                Strip(platX, platY, platW, platH, widthMul, -off);
+                Strip(platX, platY, platW, platH, widthMul, off);
+            }
+
+            // 无：-26、27、4、14、-20、7；-9/14/18/10 长台；-14 高层；顶层仅一条余烬
+            Strip(-19f, -1.85f, 1.9f, 0.38f, 0.42f);
+            Strip(7.5f, -2.05f, 2.5f, 0.42f, 0.4f);
+            Strip(-3f, -0.35f, 2f, 0.36f, 0.45f);
+            Strip(-23f, 0.1f, 1.55f, 0.34f, 0.48f);
+            Strip(-17f, 1.9f, 1.45f, 0.32f, 0.48f);
+            Strip(-1f, 3.35f, 2.9f, 0.38f, 0.4f);
+            Strip(16f, 5.5f, 2.85f, 0.38f, 0.4f);
+            StripPair(-21f, -1.05f, 4.2f, 0.44f, 0.32f);
+            StripPair(3f, 1.85f, 4.6f, 0.44f, 0.32f);
+            StripPair(23f, 2.7f, 4.5f, 0.44f, 0.32f);
+            StripPair(2f, 6.45f, 3.8f, 0.42f, 0.34f);
+            StripPair(-6f, 7.85f, 3.4f, 0.4f, 0.34f);
+            StripPair(22f, 7.95f, 3.2f, 0.4f, 0.34f);
+            Strip(-2f, 9.35f, 2.9f, 0.38f, 0.42f, 0.35f);
+        }
+
         /// <summary>树心关两侧实体挡墙（Ground），可蹬墙跳；与屏幕四边挡板不同，沿场地宽度固定。</summary>
-        static void BuildInkForest03SideArena(float groundWidth)
+        static void BuildInkForest03SideArena(float groundWidth, float midY = 2f, float wallH = 19f)
         {
             var root = new GameObject("ArenaSideWalls").transform;
             float half = groundWidth * 0.5f - 0.32f;
-            const float midY = 2f;
-            const float wallH = 19f;
             foreach (float sign in new[] { -1f, 1f })
             {
                 var go = new GameObject(sign < 0f ? "ArenaWall_L" : "ArenaWall_R");
@@ -477,7 +877,7 @@ namespace BrushSpirit
             }
         }
 
-        void SetupInkForest03CameraFollow(GameObject player, float groundWidth)
+        void SetupCameraFollowArena(GameObject player, float groundWidth, float minY, float maxY)
         {
             var cam = Camera.main;
             if (cam == null || player == null) return;
@@ -498,8 +898,8 @@ namespace BrushSpirit
             follow.smoothTime = 0.15f;
             follow.minX = -halfArena + halfW - margin;
             follow.maxX = halfArena - halfW + margin;
-            follow.minY = -4.6f;
-            follow.maxY = 9.4f;
+            follow.minY = minY;
+            follow.maxY = maxY;
 
             Vector3 p = player.transform.position + (Vector3)follow.focusOffset;
             p.z = cam.transform.position.z;
@@ -528,11 +928,17 @@ namespace BrushSpirit
         static List<PlatformSpawnInfo> BuildPlatforms(Sprite spr, string sceneName)
         {
             var root = new GameObject("Platforms").transform;
-            Color baseTint = sceneName == "InkForest_03"
-                ? new Color(0.28f, 0.30f, 0.36f)
-                : sceneName == "InkForest_02"
-                    ? new Color(0.32f, 0.33f, 0.36f)
-                    : new Color(0.36f, 0.37f, 0.40f);
+            Color baseTint = sceneName == "EmberValley_03"
+                ? new Color(0.34f, 0.28f, 0.28f)
+                : sceneName == "EmberValley_02"
+                    ? new Color(0.36f, 0.30f, 0.28f)
+                    : sceneName == "EmberValley_01"
+                        ? new Color(0.40f, 0.34f, 0.32f)
+                        : sceneName == "InkForest_03"
+                            ? new Color(0.28f, 0.30f, 0.36f)
+                            : sceneName == "InkForest_02"
+                                ? new Color(0.32f, 0.33f, 0.36f)
+                                : new Color(0.36f, 0.37f, 0.40f);
 
             var stands = new List<PlatformSpawnInfo>();
 
@@ -599,6 +1005,43 @@ namespace BrushSpirit
             // 装饰台较窄；仅「长刷怪台」注册刷怪点（明显长于其他台子）
             switch (sceneName)
             {
+                case "EmberValley_02":
+                    Plank(-16f, -2.1f, 1.75f, 0.66f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-5f,  -1.2f, 1.8f, 0.65f, PlatformStyleKind.Standard,    false);
+                    Plank(5f,   -1.75f, 2f, 0.67f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(15f,  -2f, 1.75f, 0.66f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-10f, -0.82f, 3.6f, 0.76f, PlatformStyleKind.WideMoss,    true);
+                    Plank(4f,   -0.72f, 3.5f, 0.76f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(-2.5f, 1.15f, 2.4f, 0.68f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-14f, 2.05f, 2.2f, 0.66f, PlatformStyleKind.Standard,    false);
+                    Plank(12f,  2f, 2.2f, 0.66f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-6f,  2.9f, 3.4f, 0.74f, PlatformStyleKind.WideMoss,      true);
+                    Plank(7f,   3.1f, 3.2f, 0.74f, PlatformStyleKind.CoolSlate,     true);
+                    Plank(-12f, 4.35f, 1.65f, 0.60f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(2f,   4.5f, 1.7f, 0.60f, PlatformStyleKind.NarrowRidge,  false);
+                    Plank(13f,  4.25f, 1.65f, 0.60f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-4f,  5.6f, 3.2f, 0.72f, PlatformStyleKind.Standard,     true);
+                    Plank(8f,   5.85f, 3f, 0.72f, PlatformStyleKind.WideMoss,       true);
+                    Plank(1f,   7f, 2.8f, 0.70f, PlatformStyleKind.CoolSlate,    true);
+                    break;
+                case "EmberValley_01":
+                    Plank(-18f, -2.05f, 2.2f, 0.70f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-7f,  -1.15f, 2f, 0.68f, PlatformStyleKind.Standard,    false);
+                    Plank(6f,   -1.65f, 2.3f, 0.70f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(17f,  -1.95f, 2.1f, 0.68f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-12f, -0.95f, 4.4f, 0.78f, PlatformStyleKind.WideMoss,    true);
+                    Plank(6f,   -0.78f, 4.6f, 0.78f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(-15.5f, 1.5f, 2f, 0.64f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(14.5f, 1.35f, 2f, 0.64f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-5f,   2.25f, 4.2f, 0.76f, PlatformStyleKind.Standard,    true);
+                    Plank(10f,  2.45f, 4f, 0.76f, PlatformStyleKind.WideMoss,      true);
+                    Plank(-16f, 4f, 1.85f, 0.62f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(2f,   4.15f, 1.9f, 0.62f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(16f,  4.05f, 1.85f, 0.62f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-8f,  5.8f, 4.5f, 0.74f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(6f,   6f, 4.3f, 0.74f, PlatformStyleKind.WideMoss,    true);
+                    Plank(-2f,  7.35f, 3.2f, 0.70f, PlatformStyleKind.Standard,    true);
+                    break;
                 case "InkForest_01":
                     Plank(-15f, -2f,   2.5f, 0.75f, PlatformStyleKind.Standard,    false);
                     Plank(-3f,  -1.05f, 2.4f, 0.72f, PlatformStyleKind.CoolSlate,   false);
@@ -614,6 +1057,33 @@ namespace BrushSpirit
                     Plank(-12f, -1.08f, 5f,   0.82f, PlatformStyleKind.WideMoss,    true);
                     Plank(1f,   -0.62f, 5.4f, 0.80f, PlatformStyleKind.CoolSlate,   true);
                     Plank(14f,  -1.35f, 4.7f, 0.80f, PlatformStyleKind.Standard,    true);
+                    break;
+                case "EmberValley_03":
+                    Plank(-26f, -2.35f, 2.2f, 0.42f, PlatformStyleKind.Standard,    false);
+                    Plank(-19f, -1.85f, 1.9f, 0.38f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(7.5f, -2.05f, 2.5f, 0.42f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(27f,  -1.55f, 2.3f, 0.40f, PlatformStyleKind.WideMoss,    false);
+                    Plank(-3f,  -0.35f, 2f,   0.36f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(4f,   -0.65f, 2.3f, 0.38f, PlatformStyleKind.Standard,    false);
+                    Plank(14f,  -1.05f, 2.2f, 0.38f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(-23f, 0.1f,   1.55f, 0.34f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-20f, 1f,     1.5f, 0.32f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-17f, 1.9f,   1.45f, 0.32f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-1f,  3.35f,  2.9f, 0.38f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(7f,   4.4f,   2.7f, 0.36f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(16f,  5.5f,   2.85f, 0.38f, PlatformStyleKind.WideMoss,    false);
+                    Plank(-21f, -1.05f, 4.2f, 0.44f, PlatformStyleKind.WideMoss,    true);
+                    Plank(-9f,  0.4f,   4.5f, 0.44f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(3f,   1.85f,  4.6f, 0.44f, PlatformStyleKind.Standard,    true);
+                    Plank(14f,  0.3f,   4.3f, 0.44f, PlatformStyleKind.WideMoss,    true);
+                    Plank(23f,  2.7f,   4.5f, 0.44f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(-14f, 6.1f,   3.6f, 0.42f, PlatformStyleKind.NarrowRidge, true);
+                    Plank(2f,   6.45f,  3.8f, 0.42f, PlatformStyleKind.WideMoss,    true);
+                    Plank(18f,  6.25f,  3.5f, 0.42f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(-6f,  7.85f,  3.4f, 0.40f, PlatformStyleKind.Standard,    true);
+                    Plank(10f,  8.2f,   3.6f, 0.40f, PlatformStyleKind.WideMoss,    true);
+                    Plank(22f,  7.95f,  3.2f, 0.40f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(-2f,  9.35f,  2.9f, 0.38f, PlatformStyleKind.NarrowRidge, true);
                     break;
                 case "InkForest_03":
                     // 树心区（再收窄，地面半宽约 29）

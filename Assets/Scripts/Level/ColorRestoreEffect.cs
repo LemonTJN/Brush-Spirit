@@ -10,6 +10,14 @@ namespace BrushSpirit.LevelFlow
         public SpriteRenderer[] extraTargets;
         public float duration = 4f;
 
+        [Tooltip("为 true 时用下列四色做插值（烬谷焰心赤色复苏）；否则用墨林默认绿调。")]
+        public bool useCustomPalette;
+
+        public Color customStartTint = new Color(0.12f, 0.12f, 0.14f, 0.82f);
+        public Color customEndTint = new Color(0.35f, 0.72f, 0.42f, 0.12f);
+        public Color customStartSprite = new Color(0.35f, 0.35f, 0.38f);
+        public Color customEndSprite = new Color(0.55f, 0.82f, 0.58f);
+
         Color _startTint = new Color(0.12f, 0.12f, 0.14f, 0.82f);
         Color _endTint = new Color(0.35f, 0.72f, 0.42f, 0.12f);
         Color _startSprite = new Color(0.35f, 0.35f, 0.38f);
@@ -17,6 +25,14 @@ namespace BrushSpirit.LevelFlow
 
         public void Play(System.Action onComplete)
         {
+            if (useCustomPalette)
+            {
+                _startTint = customStartTint;
+                _endTint = customEndTint;
+                _startSprite = customStartSprite;
+                _endSprite = customEndSprite;
+            }
+
             StartCoroutine(Run(onComplete));
         }
 

@@ -8,12 +8,31 @@ namespace BrushSpirit.UI
     {
         public static VictoryPanel Instance { get; private set; }
 
+        /// <summary>在 AddComponent&lt;VictoryPanel&gt; 之前设置；通关 UI 标题与解锁关卡（0=使用默认墨林）。</summary>
+        public static string PendingVictoryTitle;
+
+        public static int PendingUnlockLevel;
+
         Canvas _canvas;
         GameObject _panelRoot;
+        string _victoryTitle = "墨林 · 颜色归来";
+        int _unlockLevel = 2;
 
         void Awake()
         {
             Instance = this;
+            if (!string.IsNullOrEmpty(PendingVictoryTitle))
+            {
+                _victoryTitle = PendingVictoryTitle;
+                PendingVictoryTitle = null;
+            }
+
+            if (PendingUnlockLevel > 0)
+            {
+                _unlockLevel = PendingUnlockLevel;
+                PendingUnlockLevel = 0;
+            }
+
             Build();
             Hide();
         }
@@ -54,7 +73,7 @@ namespace BrushSpirit.UI
             title.fontSize = 36;
             title.alignment = TextAnchor.MiddleCenter;
             title.color = new Color(0.85f, 0.95f, 0.8f);
-            title.text = "墨林 · 颜色归来";
+            title.text = _victoryTitle;
 
             var btnGo = new GameObject("BackButton");
             btnGo.transform.SetParent(_panelRoot.transform, false);
@@ -94,7 +113,7 @@ namespace BrushSpirit.UI
 
         public void Show()
         {
-            GameSave.UnlockLevel(2);
+            GameSave.UnlockLevel(_unlockLevel);
             if (_panelRoot != null) _panelRoot.SetActive(true);
         }
     }

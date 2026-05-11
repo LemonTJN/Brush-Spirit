@@ -32,6 +32,11 @@ namespace BrushSpirit.Core
                    sceneName == "InkForest_03";
         }
 
+        static bool IsEmberValleyScene(string sceneName)
+        {
+            return sceneName == "EmberValley_01" || sceneName == "EmberValley_02" || sceneName == "EmberValley_03";
+        }
+
         static void TryBootstrap(Scene loadedScene)
         {
             var sceneName = loadedScene.name;
@@ -40,7 +45,8 @@ namespace BrushSpirit.Core
                 var go = new GameObject("MenuRuntimeBootstrap");
                 go.AddComponent<MenuRuntimeBootstrap>();
             }
-            else if (IsInkForestScene(sceneName) && !HasLevelControllerInScene(loadedScene))
+            else if ((IsInkForestScene(sceneName) || IsEmberValleyScene(sceneName)) &&
+                     !HasLevelControllerInScene(loadedScene))
             {
                 var prefab = Resources.Load<GameObject>("GameRuntimeBootstrap");
                 if (prefab != null)

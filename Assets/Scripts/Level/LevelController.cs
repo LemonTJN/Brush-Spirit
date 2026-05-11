@@ -20,6 +20,9 @@ namespace BrushSpirit.LevelFlow
         [Tooltip("为 true 时不在 Start 中开波，需调用 StartDeferredWaves()（墨林 01 序章用）。")]
         public bool deferWaveStart;
 
+        /// <summary>Boss 实例已生成并激活后触发（焰心爆灰加压等）。</summary>
+        public event System.Action OnBossSpawned;
+
         bool _bossSpawned;
         bool _wavesBegun;
 
@@ -70,6 +73,7 @@ namespace BrushSpirit.LevelFlow
             var boss = go.GetComponent<BossInkTree>();
             if (boss != null)
                 boss.OnDefeated += OnBossBeat;
+            OnBossSpawned?.Invoke();
         }
 
         void OnBossBeat()
