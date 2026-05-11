@@ -64,6 +64,7 @@ namespace BrushSpirit.Core
 
             yield return new WaitForSecondsRealtime(Mathf.Max(0.2f, holdSeconds));
 
+            PlayerRunCarry.ClearRun();
             SceneManager.LoadScene(string.IsNullOrEmpty(sceneName) ? SceneManager.GetActiveScene().name : sceneName);
         }
     }

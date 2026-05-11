@@ -24,6 +24,9 @@ namespace BrushSpirit.Player
         float _inputX;
         bool _jumpQueued;
         SpriteRenderer _sprite;
+        Animator _anim;
+        static readonly int kSpeed = Animator.StringToHash("Speed");
+        static readonly int kIsGrounded = Animator.StringToHash("IsGrounded");
 
         Transform _wallCheckL;
         Transform _wallCheckR;
@@ -33,6 +36,7 @@ namespace BrushSpirit.Player
         {
             _body = GetComponent<Rigidbody2D>();
             _sprite = GetComponent<SpriteRenderer>();
+            _anim = GetComponent<Animator>();
             var col = GetComponent<Collider2D>();
             if (col != null)
             {
@@ -157,6 +161,12 @@ namespace BrushSpirit.Player
                 v.y = -wallSlideSpeed;
 
             _body.velocity = v;
+
+            if (_anim != null)
+            {
+                _anim.SetFloat(kSpeed, Mathf.Abs(v.x));
+                _anim.SetBool(kIsGrounded, grounded);
+            }
         }
 
         public bool IsFacingRight => !_sprite.flipX;

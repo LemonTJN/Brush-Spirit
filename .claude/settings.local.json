@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"D:\\\\gameData\\\\游戏素材\" 2>&1 | head -50)",
+      "Read(//d/gameData/游戏素材/**)",
+      "PowerShell($tools = @\\(\"7z.exe\",\"7za.exe\",\"unrar.exe\",\"WinRAR.exe\"\\); foreach\\($t in $tools\\){ Get-ChildItem -Path \"C:\\\\Program Files\",\"C:\\\\Program Files \\(x86\\)\" -Filter $t -Recurse -ErrorAction SilentlyContinue | Select-Object FullName })"
+    ]
+  }
+}
