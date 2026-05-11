@@ -42,8 +42,16 @@ namespace BrushSpirit.Core
             }
             else if (IsInkForestScene(sceneName) && !HasLevelControllerInScene(loadedScene))
             {
-                var go = new GameObject("GameRuntimeBootstrap");
-                go.AddComponent<GameRuntimeBootstrap>();
+                var prefab = Resources.Load<GameObject>("GameRuntimeBootstrap");
+                if (prefab != null)
+                {
+                    Object.Instantiate(prefab).name = "GameRuntimeBootstrap";
+                }
+                else
+                {
+                    var go = new GameObject("GameRuntimeBootstrap");
+                    go.AddComponent<GameRuntimeBootstrap>();
+                }
             }
         }
 

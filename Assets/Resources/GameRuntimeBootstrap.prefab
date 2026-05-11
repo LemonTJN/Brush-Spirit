@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:yousandi.cn,2023:
+--- !u!1 &3053616485290823423
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 7
+  m_Component:
+  - component: {fileID: 848845835906788637}
+  - component: {fileID: 8756404427940571158}
+  m_Layer: 0
+  m_HasEditorInfo: 1
+  m_Name: GameRuntimeBootstrap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &848845835906788637
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3053616485290823423}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8756404427940571158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3053616485290823423}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a1f2e3d4c5b6a9708172635465fab01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  backgroundSprite: {fileID: 21300000, guid: 053637127c1fc71448e6000271b1d2ae, type: 3}
+  playerSprite: {fileID: 21300000, guid: 12066e1d645da0a408d7205e7d9a61cf, type: 3}
+  playerController: {fileID: 9100000, guid: 644528dbfb6762c47a072fc87ececbbe, type: 2}
+  enemySprite: {fileID: -528306003, guid: c0449d04fb7d520488b8b2c3da543f4d, type: 3}
+  bossSprite: {fileID: -1464520248, guid: cffa9029a6b70004ebe7f9a35155d843, type: 3}
+  attackCircleSprite: {fileID: 0}
+  hitSparkPrefab: {fileID: 0}
+  platformSprite: {fileID: 0}
+  groundSprite: {fileID: 0}

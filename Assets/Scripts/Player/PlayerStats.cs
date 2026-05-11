@@ -29,6 +29,10 @@ namespace BrushSpirit.Player
 
         EquipmentHolder _equipment;
         SpriteRenderer _bodySr;
+        Animator _anim;
+        Color _baseColor = Color.white;
+        static readonly int kHit = Animator.StringToHash("Hit");
+        static readonly int kDeath = Animator.StringToHash("Death");
         Coroutine _hitFlashRoutine;
         bool _deathSequenceStarted;
 
@@ -39,6 +43,8 @@ namespace BrushSpirit.Player
             OnLevelChanged ??= new UnityEvent<int>();
             _equipment = GetComponent<EquipmentHolder>();
             _bodySr = GetComponent<SpriteRenderer>();
+            if (_bodySr != null) _baseColor = _bodySr.color;
+            _anim = GetComponent<Animator>();
             RecomputeFromEquipment();
         }
 
@@ -114,17 +120,26 @@ namespace BrushSpirit.Player
             if (CurrentHp <= 0f && !_deathSequenceStarted)
             {
                 _deathSequenceStarted = true;
-                PlayerRunCarry.ClearRun();
+                if (_anim != null) _anim.SetTrigger(kDeath);
+                var mv = GetComponent<PlayerMovement>();
+                if (mv != null) mv.enabled = false;
+                var combat = GetComponent<PlayerCombat>();
+                if (combat != null) combat.enabled = false;
+                var rb = GetComponent<Rigidbody2D>();
+                if (rb != null) rb.velocity = Vector2.zero;
                 StartCoroutine(PlayerDeathPresenter.PlayThenReload(SceneManager.GetActiveScene().name));
+            }
+            else if (_anim != null && CurrentHp > 0f)
+            {
+                _anim.SetTrigger(kHit);
             }
         }
 
         IEnumerator HitFlashRoutine()
         {
-            Color original = _bodySr.color;
             _bodySr.color = new Color(1f, 0.42f, 0.42f);
             yield return new WaitForSeconds(0.07f);
-            _bodySr.color = original;
+            _bodySr.color = _baseColor;
             _hitFlashRoutine = null;
         }
 

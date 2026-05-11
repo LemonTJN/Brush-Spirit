@@ -24,8 +24,22 @@ namespace BrushSpirit.Player
 
         PlayerStats _stats;
         PlayerMovement _move;
+        BoxCollider2D _body;
+        Animator _anim;
+        static readonly int kAttack = Animator.StringToHash("Attack");
         int _comboIndex;
         bool _busy;
+
+        /// <summary>身体几何中心；用 BoxCollider2D.offset 补偿 Sprite Pivot 不在视觉中心的情况。</summary>
+        Vector2 BodyCenter
+        {
+            get
+            {
+                if (_body == null) _body = GetComponent<BoxCollider2D>();
+                Vector2 off = _body != null ? _body.offset : Vector2.zero;
+                return (Vector2)transform.position + off;
+            }
+        }
 
         public float KCdRemaining { get; private set; }
         public float LCdRemaining { get; private set; }
@@ -47,6 +61,7 @@ namespace BrushSpirit.Player
         {
             if (_stats == null) _stats = GetComponent<PlayerStats>();
             if (_move == null) _move = GetComponent<PlayerMovement>();
+            if (_anim == null) _anim = GetComponent<Animator>();
         }
 
         void Update()
@@ -59,6 +74,7 @@ namespace BrushSpirit.Player
                 float mult = _comboIndex == 0 ? 1f : _comboIndex == 1 ? 1.1f : 1.25f;
                 DealMeleeWide(mult, new Color(1f, 0.92f, 0.55f, 0.58f), 0.12f, 1f, knockbackJL);
                 _comboIndex = (_comboIndex + 1) % 3;
+                if (_anim != null) _anim.SetTrigger(kAttack);
             }
 
             if (_busy) return;
@@ -78,7 +94,7 @@ namespace BrushSpirit.Player
             _busy = true;
             KCdRemaining = kCooldown;
             yield return new WaitForSeconds(0.08f);
-            SpawnAttackCircleFx(transform.position, kSkillRadius);
+            SpawnAttackCircleFx(BodyCenter, kSkillRadius);
             DealCircle(kSkillRadius, 1.5f, knockbackK);
             yield return new WaitForSeconds(0.2f);
             _busy = false;
@@ -103,7 +119,7 @@ namespace BrushSpirit.Player
         {
             CacheRefs();
             if (_stats == null) return;
-            Vector2 center = (Vector2)transform.position + new Vector2(0f, 0.12f);
+            Vector2 center = BodyCenter + new Vector2(0f, 0.12f);
             float w = attackOffset * 2f + attackBoxSize.x + meleeWidthExtra;
             float h = attackBoxSize.y + 0.25f;
             Vector2 size = new Vector2(w, h) * fxSizeMul;
@@ -116,7 +132,7 @@ namespace BrushSpirit.Player
         {
             CacheRefs();
             if (_stats == null) return;
-            var hits = Physics2D.OverlapCircleAll(transform.position, radius, hurtboxMask, Mathf.NegativeInfinity, Mathf.Infinity);
+            var hits = Physics2D.OverlapCircleAll(BodyCenter, radius, hurtboxMask, Mathf.NegativeInfinity, Mathf.Infinity);
             ApplyDamage(hits, _stats.GetAttackPower() * damageMultiplier, knockbackImpulse);
         }
 

@@ -38,8 +38,22 @@ namespace BrushSpirit
         SpriteRenderer _backdropB;
         SpriteRenderer _backdropC;
 
+        [Header("Art Overrides (可选；为空时回退到白方块)")]
+        public Sprite backgroundSprite;
+        public Sprite playerSprite;
+        public RuntimeAnimatorController playerController;
+        public Sprite enemySprite;
+        public Sprite bossSprite;
+        public Sprite attackCircleSprite;
+        public GameObject hitSparkPrefab;
+        public Sprite platformSprite;
+        public Sprite groundSprite;
+
+        static GameRuntimeBootstrap _instance;
+
         void Awake()
         {
+            _instance = this;
             string sn = SceneManager.GetActiveScene().name;
             EnsureEventSystem();
             Physics2D.gravity = new Vector2(0f, -30f);
@@ -363,13 +377,36 @@ namespace BrushSpirit
                 bsy = 7f;
             }
 
-            var a = new GameObject("BackdropL");
-            a.transform.position = new Vector3(ax, ay, 0f);
-            _backdropA = a.AddComponent<SpriteRenderer>();
+            if (backgroundSprite != null)
+            {
+                // 单张水墨背景模式：用 Sprite 原始宽高比覆盖整个游戏区域，不再分 L/R/Upper 拼接
+                Vector2 spriteSize = backgroundSprite.bounds.size; // 单位：world units
+                float sceneHalfWidth = sceneName == "InkForest_03" ? 30f : 24f;
+                float sceneHalfHeight = sceneName == "InkForest_03" ? 11f : 7.5f;
+                float scaleByW = (sceneHalfWidth * 2f) / Mathf.Max(0.01f, spriteSize.x);
+                float scaleByH = (sceneHalfHeight * 2f) / Mathf.Max(0.01f, spriteSize.y);
+                float fitScale = Mathf.Max(scaleByW, scaleByH); // 用较大值保证完全覆盖、不留空白边
+
+                var a = new GameObject("BackdropL");
+                a.transform.position = new Vector3(0f, (ay + by) * 0.5f, 0f);
+                _backdropA = a.AddComponent<SpriteRenderer>();
+                _backdropA.sprite = backgroundSprite;
+                _backdropA.color = Color.white;
+                _backdropA.sortingOrder = -12;
+                a.transform.localScale = new Vector3(fitScale, fitScale, 1f);
+
+                _backdropB = null;
+                _backdropC = null;
+                return; // 跳过 BackdropR / BackdropUpper 创建
+            }
+
+            var a2 = new GameObject("BackdropL");
+            a2.transform.position = new Vector3(ax, ay, 0f);
+            _backdropA = a2.AddComponent<SpriteRenderer>();
             _backdropA.sprite = spr;
             _backdropA.color = left;
             _backdropA.sortingOrder = -12;
-            a.transform.localScale = new Vector3(asx, asy, 1f);
+            a2.transform.localScale = new Vector3(asx, asy, 1f);
 
             var b = new GameObject("BackdropR");
             b.transform.position = new Vector3(bx, by, 0f);
@@ -388,6 +425,11 @@ namespace BrushSpirit
                 _backdropC.color = new Color(0.16f, 0.18f, 0.26f);
                 _backdropC.sortingOrder = -14;
                 c.transform.localScale = new Vector3(36f, 12f, 1f);
+                if (backgroundSprite != null)
+                {
+                    _backdropC.sprite = backgroundSprite;
+                    _backdropC.color = Color.white;
+                }
             }
         }
 
@@ -409,6 +451,11 @@ namespace BrushSpirit
             sr.sprite = spr;
             sr.color = c;
             sr.sortingOrder = -6;
+            if (_instance != null && _instance.groundSprite != null)
+            {
+                sr.sprite = _instance.groundSprite;
+                sr.color = Color.white;
+            }
             g.AddComponent<BoxCollider2D>();
         }
 
@@ -526,6 +573,11 @@ namespace BrushSpirit
                 sr.sprite = spr;
                 sr.color = StyleColor(baseTint, style);
                 sr.sortingOrder = StyleSort(style);
+                if (_instance != null && _instance.platformSprite != null)
+                {
+                    sr.sprite = _instance.platformSprite;
+                    sr.color = Color.white;
+                }
                 go.AddComponent<BoxCollider2D>();
                 if (!registerSpawn) return;
 
@@ -631,14 +683,38 @@ namespace BrushSpirit
             sr.color = new Color(0.88f, 0.9f, 0.92f);
             sr.sortingOrder = 10;
             p.transform.localScale = new Vector3(0.7f, 1.15f, 1f);
+            if (_instance != null && _instance.playerSprite != null)
+            {
+                sr.sprite = _instance.playerSprite;
+                sr.color = Color.white;
+                p.transform.localScale = Vector3.one;
+            }
+            if (_instance != null && _instance.playerController != null)
+            {
+                var anim = p.AddComponent<Animator>();
+                anim.runtimeAnimatorController = _instance.playerController;
+                anim.applyRootMotion = false;
+            }
             var rb = p.AddComponent<Rigidbody2D>();
             rb.constraints = RigidbodyConstraints2D.FreezeRotation;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             var box = p.AddComponent<BoxCollider2D>();
-            box.size = new Vector2(0.55f, 0.95f);
+            if (_instance != null && _instance.playerSprite != null)
+            {
+                box.size = new Vector2(0.9f, 1.5f);
+                box.offset = new Vector2(0f, -0.5f);
+            }
+            else
+            {
+                box.size = new Vector2(0.55f, 0.95f);
+            }
             var pm = p.AddComponent<PlayerMovement>();
             pm.moveSpeed = 7.2f;
             pm.jumpForce = 14.5f;
+            if (_instance != null && _instance.playerSprite != null && pm.groundCheck != null)
+            {
+                pm.groundCheck.localPosition = new Vector3(0f, box.offset.y - box.size.y * 0.5f, 0f);
+            }
             p.AddComponent<EquipmentHolder>();
             var ps = p.AddComponent<PlayerStats>();
             ps.xpPerLevel = new[] { 45, 80, 130, 200, 300 };
@@ -713,6 +789,15 @@ namespace BrushSpirit
             sr.sortingOrder = 5;
             float s = t.visualScale;
             root.transform.localScale = new Vector3(s, s, 1f);
+            if (_instance != null && _instance.enemySprite != null)
+            {
+                sr.sprite = _instance.enemySprite;
+                sr.color = Color.white;
+                root.transform.localScale = new Vector3(s * 0.6f, s * 0.6f, 1f);
+                var pos = root.transform.position;
+                pos.y += 0.25f;
+                root.transform.position = pos;
+            }
             var se = root.AddComponent<SimpleEnemy>();
             se.whiteDropA = a;
             se.whiteDropB = b;
@@ -749,6 +834,11 @@ namespace BrushSpirit
             sr.color = new Color(0.11f, 0.11f, 0.13f);
             sr.sortingOrder = 8;
             root.transform.localScale = new Vector3(2.15f, 2.55f, 1f);
+            if (_instance != null && _instance.bossSprite != null)
+            {
+                sr.sprite = _instance.bossSprite;
+                sr.color = Color.white;
+            }
             var boss = root.AddComponent<BossInkTree>();
             boss.colorGearDrop = colorDrop;
             boss.maxHp = t.maxHp;
