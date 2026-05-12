@@ -19,9 +19,19 @@ namespace BrushSpirit.Items
             var go = new GameObject("Pickup_" + (equipment != null ? equipment.displayName : "loot"));
             go.transform.position = position;
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = GameBootstrap.CreatePlaceholderSprite();
+            var gb = GameBootstrap.Instance;
+            if (gb != null && gb.pickupSprite != null)
+            {
+                sr.sprite = gb.pickupSprite;
+                sr.color = Color.white;
+                go.transform.localScale = new Vector3(0.55f, 0.55f, 1f);
+            }
+            else
+            {
+                sr.sprite = GameBootstrap.CreatePlaceholderSprite();
+                sr.color = equipment != null ? equipment.visualTint : Color.yellow;
+            }
             sr.sortingOrder = 20;
-            sr.color = equipment != null ? equipment.visualTint : Color.yellow;
             var col = go.AddComponent<CircleCollider2D>();
             col.isTrigger = true;
             col.radius = 0.38f;

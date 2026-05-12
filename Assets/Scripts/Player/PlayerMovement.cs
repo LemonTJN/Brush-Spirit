@@ -16,6 +16,16 @@ namespace BrushSpirit.Player
         [Tooltip("蹬墙跳后短暂锁定水平输入，让弹出效果显现（秒）")]
         public float wallJumpInputLockTime = 0.18f;
 
+        [Header("冲刺 / Dash")]
+        [Tooltip("冲刺水平速度")]
+        public float dashSpeed = 18f;
+        [Tooltip("冲刺持续时间（秒）")]
+        public float dashDuration = 0.18f;
+        [Tooltip("冲刺冷却（秒）")]
+        public float dashCooldown = 2f;
+        [Tooltip("双击方向键触发的最大间隔（秒）")]
+        public float doubleTapWindow = 0.25f;
+
         public Transform groundCheck;
         public float groundCheckRadius = 0.22f;
         public float wallCheckRadius = 0.14f;
@@ -27,10 +37,21 @@ namespace BrushSpirit.Player
         Animator _anim;
         static readonly int kSpeed = Animator.StringToHash("Speed");
         static readonly int kIsGrounded = Animator.StringToHash("IsGrounded");
+        static readonly int kIsWallSliding = Animator.StringToHash("IsWallSliding");
+        static readonly int kDash = Animator.StringToHash("Dash");
 
         Transform _wallCheckL;
         Transform _wallCheckR;
         float _wallJumpLockX;   // 蹬墙跳后水平输入锁定倒计时
+
+        // 冲刺状态
+        float _lastTapTime = -10f;
+        int _lastTapDir;            // -1 左, +1 右
+        float _dashCdRemaining;
+        float _dashRemaining;       // > 0 表示正在冲刺中
+        int _dashDir;               // 当前冲刺方向
+
+        public float DashCdRemaining => _dashCdRemaining;
 
         void Awake()
         {
@@ -74,6 +95,29 @@ namespace BrushSpirit.Player
 
             if (_inputX > 0.05f) _sprite.flipX = false;
             else if (_inputX < -0.05f) _sprite.flipX = true;
+
+            // 双击方向键触发冲刺
+            int tapDir = 0;
+            if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) tapDir = -1;
+            else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) tapDir = 1;
+            if (tapDir != 0)
+            {
+                if (_dashCdRemaining <= 0f && _dashRemaining <= 0f
+                    && tapDir == _lastTapDir
+                    && Time.time - _lastTapTime <= doubleTapWindow)
+                {
+                    _dashDir = tapDir;
+                    _dashRemaining = dashDuration;
+                    _dashCdRemaining = dashCooldown;
+                    _lastTapTime = -10f;
+                    if (_anim != null) _anim.SetTrigger(kDash);
+                }
+                else
+                {
+                    _lastTapTime = Time.time;
+                    _lastTapDir = tapDir;
+                }
+            }
         }
 
         static bool TouchesGround(Vector2 pos, float radius)
@@ -111,6 +155,21 @@ namespace BrushSpirit.Player
         {
             float dt = Time.fixedDeltaTime;
             if (_wallJumpLockX > 0f) _wallJumpLockX -= dt;
+            if (_dashCdRemaining > 0f) _dashCdRemaining -= dt;
+
+            // 冲刺期间：覆盖水平速度、抵消重力、跳过常规移动逻辑
+            if (_dashRemaining > 0f)
+            {
+                _dashRemaining -= dt;
+                _body.velocity = new Vector2(_dashDir * dashSpeed, 0f);
+                if (_anim != null)
+                {
+                    _anim.SetFloat(kSpeed, dashSpeed);
+                    _anim.SetBool(kIsGrounded, IsFeetOnSupport());
+                    _anim.SetBool(kIsWallSliding, false);
+                }
+                return;
+            }
 
             bool grounded = IsFeetOnSupport();
             bool wallL    = TouchesGround(_wallCheckL.position, wallCheckRadius);
@@ -166,6 +225,7 @@ namespace BrushSpirit.Player
             {
                 _anim.SetFloat(kSpeed, Mathf.Abs(v.x));
                 _anim.SetBool(kIsGrounded, grounded);
+                _anim.SetBool(kIsWallSliding, sliding);
             }
         }
 

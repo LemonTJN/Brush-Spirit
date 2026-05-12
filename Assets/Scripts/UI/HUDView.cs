@@ -13,14 +13,17 @@ namespace BrushSpirit.UI
         public Text jAttackText;
         public Text kCooldownText;
         public Text lCooldownText;
+        public Text dashCooldownText;
 
         PlayerStats _stats;
         PlayerCombat _combat;
+        PlayerMovement _move;
 
-        public void Bind(PlayerStats stats, PlayerCombat combat)
+        public void Bind(PlayerStats stats, PlayerCombat combat, PlayerMovement move = null)
         {
             _stats = stats;
             _combat = combat;
+            _move = move;
             if (_stats == null) return;
             if (_stats.OnHealthChanged == null)
                 _stats.OnHealthChanged = new UnityEngine.Events.UnityEvent<float, float>();
@@ -78,6 +81,8 @@ namespace BrushSpirit.UI
                 kCooldownText.text = _combat.KCdRemaining > 0f ? $"墨爆 K: {_combat.KCdRemaining:0.0}s" : "墨爆 K: 就绪";
             if (lCooldownText != null)
                 lCooldownText.text = _combat.LCdRemaining > 0f ? $"三连 L: {_combat.LCdRemaining:0.0}s" : "三连 L: 就绪";
+            if (dashCooldownText != null && _move != null)
+                dashCooldownText.text = _move.DashCdRemaining > 0f ? $"冲刺 双击←/→: {_move.DashCdRemaining:0.0}s" : "冲刺 双击←/→: 就绪";
         }
     }
 }

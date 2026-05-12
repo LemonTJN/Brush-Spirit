@@ -41,15 +41,22 @@ namespace BrushSpirit
         [Header("Art Overrides (可选；为空时回退到白方块)")]
         public Sprite backgroundSprite;
         public Sprite playerSprite;
-        public RuntimeAnimatorController playerController;
+        public RuntimeAnimatorController playerController;        // 默认/Sword
+        public RuntimeAnimatorController bareController;          // 1 号：空手
+        public RuntimeAnimatorController pistolController;        // 3 号：手枪
+        public GameObject bulletPrefab;                           // 手枪子弹
         public Sprite enemySprite;
         public Sprite bossSprite;
         public Sprite attackCircleSprite;
+        public GameObject attackCirclePrefab;
         public GameObject hitSparkPrefab;
+        public GameObject attackHitPrefab;
         public Sprite platformSprite;
         public Sprite groundSprite;
+        public Sprite pickupSprite;
 
         static GameRuntimeBootstrap _instance;
+        public static GameRuntimeBootstrap Instance => _instance;
 
         void Awake()
         {
@@ -1381,7 +1388,10 @@ namespace BrushSpirit
             hud.lCooldownText = CreateHudText(go.transform, "LCD", "三连 L: 就绪", 18, new Vector2(0.05f, 0.685f), new Vector2(420f, 32f),
                 TextAnchor.UpperLeft);
 
-            hud.Bind(player.GetComponent<PlayerStats>(), player.GetComponent<PlayerCombat>());
+            hud.dashCooldownText = CreateHudText(go.transform, "DashCD", "冲刺 双击←/→: 就绪", 18, new Vector2(0.05f, 0.625f), new Vector2(460f, 32f),
+                TextAnchor.UpperLeft);
+
+            hud.Bind(player.GetComponent<PlayerStats>(), player.GetComponent<PlayerCombat>(), player.GetComponent<PlayerMovement>());
         }
 
         static Slider CreateHealthSlider(Transform parent)
@@ -1446,7 +1456,7 @@ namespace BrushSpirit
             t.font = BuiltinFont();
             t.fontSize = size;
             t.alignment = align;
-            t.color = new Color(0.92f, 0.94f, 0.9f);
+            t.color = new Color(0.08f, 0.08f, 0.10f);
             t.text = text;
             return t;
         }

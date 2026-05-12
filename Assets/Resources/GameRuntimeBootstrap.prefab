@@ -48,9 +48,15 @@ MonoBehaviour:
   backgroundSprite: {fileID: 21300000, guid: 053637127c1fc71448e6000271b1d2ae, type: 3}
   playerSprite: {fileID: 21300000, guid: 12066e1d645da0a408d7205e7d9a61cf, type: 3}
   playerController: {fileID: 9100000, guid: 644528dbfb6762c47a072fc87ececbbe, type: 2}
+  bareController: {fileID: 9100000, guid: bda897d05b9a4b4428e60fe5c309eb2e, type: 2}
+  pistolController: {fileID: 9100000, guid: ebdbb81f235a1e14bb1799b18f158c27, type: 2}
+  bulletPrefab: {fileID: 3007688282875648384, guid: eb4f6a30f2036794782ebc52f3f03d68, type: 3}
   enemySprite: {fileID: -528306003, guid: c0449d04fb7d520488b8b2c3da543f4d, type: 3}
   bossSprite: {fileID: -1464520248, guid: cffa9029a6b70004ebe7f9a35155d843, type: 3}
   attackCircleSprite: {fileID: 0}
+  attackCirclePrefab: {fileID: 3451194374713724996, guid: be0f1ce43a59d7e49b4d407c570e279a, type: 3}
   hitSparkPrefab: {fileID: 0}
+  attackHitPrefab: {fileID: 2283464493642779511, guid: ccb7e2bccdcffe740825d71b17a52d53, type: 3}
   platformSprite: {fileID: 0}
   groundSprite: {fileID: 0}
+  pickupSprite: {fileID: 0}
