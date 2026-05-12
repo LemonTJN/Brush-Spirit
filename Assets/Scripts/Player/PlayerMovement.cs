@@ -1,4 +1,5 @@
 using UnityEngine;
+using BrushSpirit.LevelFlow;
 
 namespace BrushSpirit.Player
 {
@@ -52,6 +53,8 @@ namespace BrushSpirit.Player
         int _dashDir;               // 当前冲刺方向
 
         public float DashCdRemaining => _dashCdRemaining;
+
+        public bool IsDashing => _dashRemaining > 0f;
 
         void Awake()
         {
@@ -187,6 +190,11 @@ namespace BrushSpirit.Player
             if (_wallJumpLockX <= 0f)
             {
                 float targetVx = _inputX * moveSpeed;
+                Vector2 body = transform.position;
+                Vector2 feet = groundCheck != null ? (Vector2)groundCheck.position : body;
+                targetVx *= HeartSceneEnvironment.GetHorizontalMoveMultiplierForPlayer(feet, body);
+                if (Mathf.Abs(_inputX) > 0.05f)
+                    targetVx *= HeartSceneEnvironment.GetInkMirrorHorizontalBoost(body);
                 // 持续向墙内施加速率会与 2D 碰撞解算摩擦，易把垂直速度卡在 0；只允许离开墙的方向
                 if (onWall)
                 {
@@ -218,6 +226,18 @@ namespace BrushSpirit.Player
             // 滑墙：匀速缓慢下落（按住贴墙键时不再被摩擦卡在 vy≈0）；上升阶段不覆盖（蹬墙跳等）
             if (sliding && v.y <= 0f)
                 v.y = -wallSlideSpeed;
+
+            // 斜堤：沿坡面向下的加速度（站立自动下滑感）+ 额外向下加速度（加快顺坡下落）
+            if (grounded && _dashRemaining <= 0f && _wallJumpLockX <= 0f)
+            {
+                Vector2 feet = groundCheck != null ? (Vector2)groundCheck.position : (Vector2)transform.position;
+                v += HeartSceneEnvironment.GetRampSlideAcceleration(feet) * dt;
+                float rampDown = HeartSceneEnvironment.GetRampExtraDownwardAccel(feet);
+                if (rampDown > 0f && v.y <= 0.35f)
+                    v.y -= rampDown * dt;
+            }
+
+            v += HeartSceneEnvironment.GetExtraAcceleration((Vector2)transform.position) * dt;
 
             _body.velocity = v;
 

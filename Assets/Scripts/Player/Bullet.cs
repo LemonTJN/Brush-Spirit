@@ -1,4 +1,5 @@
 using BrushSpirit.Core;
+using BrushSpirit.LevelFlow;
 using UnityEngine;
 
 namespace BrushSpirit.Player
@@ -49,7 +50,8 @@ namespace BrushSpirit.Player
             if (d == null) d = other.GetComponentInParent<IDamageable>();
             if (d != null)
             {
-                d.TakeDamage(damage, _owner, _dir.x * knockbackImpulse);
+                float dmgMul = HeartSceneEnvironment.GetOutgoingDamageMultiplierOnTarget(other.bounds.center);
+                d.TakeDamage(damage * dmgMul, _owner, _dir.x * knockbackImpulse);
                 Destroy(gameObject);
             }
         }

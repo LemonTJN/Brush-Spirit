@@ -75,6 +75,7 @@ namespace BrushSpirit
             string clearSub = "";
             int spawnPointCount = 3;
             float bossSpawnX = 11f;
+            List<Transform> hr02BridgeSpawns = null;
             SectionEnemyTuning enemyTune = DefaultEnemyTuning();
             SectionBossTuning bossTune = new SectionBossTuning
             {
@@ -225,9 +226,105 @@ namespace BrushSpirit
                         slamDamage = 32f
                     };
                     break;
+                case "HeartRealm_01":
+                    groundWidth = 54f;
+                    waveCounts = new List<int> { 2, 3, 4 };
+                    hasBoss = false;
+                    nextScene = "HeartRealm_02";
+                    clearTitle = "绘心 · 褪色庭 已肃清";
+                    clearSub = "裂帛廊在前，狭雾更紧。";
+                    spawnPointCount = 5;
+                    bossSpawnX = 12f;
+                    playerSpawn = new Vector3(-5.5f, -2.85f, 0f);
+                    enemyTune = new SectionEnemyTuning
+                    {
+                        maxHp = 38f,
+                        moveSpeed = 2f,
+                        attackDamage = 4.5f,
+                        attackCooldown = 0.88f,
+                        attackRange = 2.58f,
+                        xpReward = 13,
+                        visualScale = 0.92f,
+                        tint = new Color(0.2f, 0.18f, 0.24f),
+                        waveGap = 0.2f
+                    };
+                    break;
+                case "HeartRealm_02":
+                    groundWidth = 44f;
+                    waveCounts = new List<int> { 3, 4, 4 };
+                    hasBoss = false;
+                    nextScene = "HeartRealm_03";
+                    clearTitle = "绘心 · 裂帛廊 已肃清";
+                    clearSub = "悬枢阶在上，坠台与雾一同逼近。";
+                    spawnPointCount = 6;
+                    bossSpawnX = 10f;
+                    playerSpawn = new Vector3(-5.5f, -2.85f, 0f);
+                    enemyTune = new SectionEnemyTuning
+                    {
+                        maxHp = 44f,
+                        moveSpeed = 2.12f,
+                        attackDamage = 5.2f,
+                        attackCooldown = 0.8f,
+                        attackRange = 2.68f,
+                        xpReward = 15,
+                        visualScale = 0.94f,
+                        tint = new Color(0.18f, 0.16f, 0.22f),
+                        waveGap = 0.17f
+                    };
+                    break;
+                case "HeartRealm_03":
+                    groundWidth = 58f;
+                    waveCounts = new List<int> { 3, 6, 5 };
+                    hasBoss = false;
+                    nextScene = "HeartRealm_04";
+                    clearTitle = "绘心 · 悬枢阶 已肃清";
+                    clearSub = "王座在前，墨魇待击。";
+                    spawnPointCount = 7;
+                    bossSpawnX = 22f;
+                    playerSpawn = new Vector3(-7.5f, -2.85f, 0f);
+                    enemyTune = new SectionEnemyTuning
+                    {
+                        maxHp = 52f,
+                        moveSpeed = 2.48f,
+                        attackDamage = 6.1f,
+                        attackCooldown = 0.7f,
+                        attackRange = 2.85f,
+                        xpReward = 17,
+                        visualScale = 1.02f,
+                        tint = new Color(0.15f, 0.13f, 0.2f),
+                        waveGap = 0.14f
+                    };
+                    break;
+                case "HeartRealm_04":
+                    groundWidth = 58f;
+                    waveCounts = new List<int> { 3, 7 };
+                    hasBoss = true;
+                    spawnPointCount = 7;
+                    bossSpawnX = 22f;
+                    playerSpawn = new Vector3(-7.5f, -2.85f, 0f);
+                    enemyTune = new SectionEnemyTuning
+                    {
+                        maxHp = 58f,
+                        moveSpeed = 2.7f,
+                        attackDamage = 7f,
+                        attackCooldown = 0.6f,
+                        attackRange = 2.95f,
+                        xpReward = 19,
+                        visualScale = 1.06f,
+                        tint = new Color(0.12f, 0.1f, 0.16f),
+                        waveGap = 0.82f
+                    };
+                    bossTune = new SectionBossTuning
+                    {
+                        maxHp = 315f,
+                        moveSpeed = 2.95f,
+                        slamDamage = 36f
+                    };
+                    break;
             }
 
             EmberValleyAshBurstSpawner ember03AshSpawner = null;
+            HeartRealmRipSpawner heartRipSpawner = null;
 
             BuildBackdrop(spr, sn);
             BuildGround(spr, groundWidth, sn);
@@ -243,20 +340,42 @@ namespace BrushSpirit
                 BuildInkForest03SideArena(groundWidth);
             if (sn == "EmberValley_03")
                 BuildInkForest03SideArena(groundWidth, 2.45f, 24f);
+            if (sn == "HeartRealm_03" || sn == "HeartRealm_04")
+                BuildInkForest03SideArena(groundWidth, 2.45f, 24f);
+            if (sn == "HeartRealm_01")
+                HeartRealmLevelBuild.BuildHeartRealm01Courtyard(spr, groundWidth);
+            if (sn == "HeartRealm_02")
+            {
+                BuildEmberValley02SideArena(groundWidth);
+                hr02BridgeSpawns = HeartRealmLevelBuild.BuildHeartRealm02Corridor(spr, groundWidth);
+            }
+
+            if (sn == "HeartRealm_03")
+                HeartRealmLevelBuild.BuildHeartRealm03PivotArena(spr, groundWidth);
+            if (sn == "HeartRealm_03")
+                HeartRealmLevelBuild.BuildDriftingDesaturationCluster(spr);
+            if (sn == "HeartRealm_04")
+                HeartRealmLevelBuild.BuildHeartRealm04ThroneArena(spr, groundWidth);
             if (sn == "EmberValley_01")
                 BuildEmberValley01SideArena(groundWidth);
             var platformSpawnInfos = BuildPlatforms(spr, sn);
+            if (sn == "HeartRealm_03")
+            {
+                var platRoot = GameObject.Find("Platforms")?.transform;
+                HeartRealmLevelBuild.BuildSinkerPlatforms(platRoot, spr);
+            }
             if (sn == "EmberValley_02")
                 BuildEmberValley02PlatformCinders(spr);
             if (sn == "EmberValley_03")
                 BuildEmberValley03PlatformCinders(spr);
             GameObject player = GetOrCreatePlayer(spr, playerSpawn);
             var gear = BuildEquipment();
-            float spawnSpan = sn == "InkForest_03" || sn == "EmberValley_03"
+            float spawnSpan = sn == "InkForest_03" || sn == "EmberValley_03" || sn == "HeartRealm_03" ||
+                              sn == "HeartRealm_04"
                 ? groundWidth * 0.58f
-                : sn == "EmberValley_01"
+                : sn == "EmberValley_01" || sn == "HeartRealm_01"
                     ? groundWidth * 0.52f
-                    : sn == "EmberValley_02"
+                    : sn == "EmberValley_02" || sn == "HeartRealm_02"
                         ? groundWidth * 0.42f
                         : -1f;
             var groundSpawns = BuildSpawnPoints(spawnPointCount, spawnSpan);
@@ -269,6 +388,15 @@ namespace BrushSpirit
             wave.delayBetweenWaves = enemyTune.waveGap;
             foreach (var s in spawns)
                 wave.spawnPoints.Add(s);
+            if (hr02BridgeSpawns != null)
+            {
+                foreach (var t in hr02BridgeSpawns)
+                {
+                    if (t != null)
+                        wave.spawnPoints.Add(t);
+                }
+            }
+
             var tuneCopy = enemyTune;
             wave.EnemyFactory = sp => CreateEnemy(sp, spr, gear.whiteA, gear.whiteB, tuneCopy);
 
@@ -291,6 +419,21 @@ namespace BrushSpirit
                 ember03AshSpawner.ConfigureWithBossPhase(spr, -halfEv3, halfEv3, -3.12f, 2.75f, 4.35f, 0.72f, 1.25f);
             }
 
+            if (sn == "HeartRealm_02" || sn == "HeartRealm_03" || sn == "HeartRealm_04")
+            {
+                var ripGo = new GameObject("HeartRipSpawner");
+                heartRipSpawner = ripGo.AddComponent<HeartRealmRipSpawner>();
+                float halfRip = groundWidth * 0.5f - 3.2f;
+                if (sn == "HeartRealm_04")
+                    heartRipSpawner.ConfigureWithBossPhase(spr, -halfRip, halfRip, -3.12f, 2.5f, 4f, 0.62f, 1.02f);
+                else if (sn == "HeartRealm_03")
+                    heartRipSpawner.ConfigureWithBossPhase(spr, -halfRip, halfRip, -3.12f, 2.15f, 3.45f, 2.15f, 3.45f);
+                else
+                    heartRipSpawner.ConfigureWithBossPhase(spr, -halfRip, halfRip, -3.12f, 3.05f, 4.85f, 2.45f, 3.85f);
+                if (sn == "HeartRealm_02")
+                    heartRipSpawner.SetCorridorDirectionalMode(true);
+            }
+
             if (sn == "InkForest_01")
             {
                 level.deferWaveStart = true;
@@ -308,6 +451,31 @@ namespace BrushSpirit
                 level.deferWaveStart = true;
                 levelRoot.AddComponent<EmberValley02Director>();
                 levelRoot.AddComponent<EmberValley02SmokeOverlay>();
+            }
+
+            if (sn == "HeartRealm_01")
+            {
+                level.deferWaveStart = true;
+                levelRoot.AddComponent<HeartRealm01Director>();
+                level.autoAdvanceNextSceneDelay = 3.1f;
+            }
+
+            if (sn == "HeartRealm_02")
+            {
+                level.deferWaveStart = true;
+                levelRoot.AddComponent<HeartRealm02Director>();
+            }
+
+            if (sn == "HeartRealm_03")
+            {
+                level.deferWaveStart = true;
+                levelRoot.AddComponent<HeartRealm03Director>();
+            }
+
+            if (sn == "HeartRealm_04")
+            {
+                level.deferWaveStart = true;
+                levelRoot.AddComponent<HeartRealm04Director>();
             }
 
             if (hasBoss)
@@ -331,6 +499,14 @@ namespace BrushSpirit
                     VictoryPanel.PendingVictoryTitle = "烬谷 · 赤色归来";
                     VictoryPanel.PendingUnlockLevel = 3;
                 }
+                else if (sn == "HeartRealm_04")
+                {
+                    fx.useSpectrumRestore = true;
+                    fx.useCustomPalette = false;
+                    fx.duration = 5.8f;
+                    VictoryPanel.PendingVictoryTitle = "绘心 · 万色归来";
+                    VictoryPanel.PendingUnlockLevel = 4;
+                }
                 else
                 {
                     VictoryPanel.PendingVictoryTitle = null;
@@ -349,9 +525,14 @@ namespace BrushSpirit
             if (ember03AshSpawner != null && hasBoss)
                 level.OnBossSpawned += () => ember03AshSpawner.SetBossPhase(true);
 
+            if (heartRipSpawner != null && hasBoss)
+                level.OnBossSpawned += () => heartRipSpawner.SetBossPhase(true);
+
             BuildHud(player);
 
-            bool emberVertical = sn == "EmberValley_01" || sn == "EmberValley_02" || sn == "EmberValley_03";
+            bool emberVertical = sn == "EmberValley_01" || sn == "EmberValley_02" || sn == "EmberValley_03" ||
+                                 sn == "HeartRealm_01" || sn == "HeartRealm_02" || sn == "HeartRealm_03" ||
+                                 sn == "HeartRealm_04";
             float cameraOrtho = sn == "InkForest_03" || emberVertical ? 6.75f : 6.5f;
             Color clearBg = sn == "EmberValley_03"
                 ? new Color(0.22f, 0.15f, 0.14f)
@@ -359,7 +540,15 @@ namespace BrushSpirit
                     ? new Color(0.2f, 0.16f, 0.15f)
                     : sn == "EmberValley_01"
                         ? new Color(0.24f, 0.19f, 0.17f)
-                        : new Color(0.16f, 0.17f, 0.19f);
+                        : sn == "HeartRealm_04"
+                            ? new Color(0.14f, 0.1f, 0.16f)
+                            : sn == "HeartRealm_03"
+                                ? new Color(0.15f, 0.11f, 0.17f)
+                                : sn == "HeartRealm_02"
+                                    ? new Color(0.17f, 0.13f, 0.18f)
+                                    : sn == "HeartRealm_01"
+                                        ? new Color(0.18f, 0.15f, 0.2f)
+                                        : new Color(0.16f, 0.17f, 0.19f);
             MainCameraEnsure.Ensure(clearBg, cameraOrtho);
             if (sn == "InkForest_03" || emberVertical)
             {
@@ -369,7 +558,15 @@ namespace BrushSpirit
                         ? 15.2f
                         : sn == "EmberValley_03"
                             ? 15.8f
-                            : 9.4f;
+                            : sn == "HeartRealm_01"
+                                ? 11.55f
+                                : sn == "HeartRealm_02"
+                                    ? 15.2f
+                                    : sn == "HeartRealm_03"
+                                        ? 15.8f
+                                        : sn == "HeartRealm_04"
+                                            ? 16f
+                                            : 9.4f;
                 SetupCameraFollowArena(player, groundWidth, -5.15f, yMax);
             }
             else
@@ -530,6 +727,26 @@ namespace BrushSpirit
                 left = new Color(0.26f, 0.16f, 0.15f);
                 right = new Color(0.2f, 0.13f, 0.14f);
             }
+            else if (sceneName == "HeartRealm_01")
+            {
+                left = new Color(0.28f, 0.22f, 0.3f);
+                right = new Color(0.22f, 0.2f, 0.26f);
+            }
+            else if (sceneName == "HeartRealm_02")
+            {
+                left = new Color(0.22f, 0.18f, 0.26f);
+                right = new Color(0.17f, 0.14f, 0.22f);
+            }
+            else if (sceneName == "HeartRealm_03")
+            {
+                left = new Color(0.2f, 0.15f, 0.24f);
+                right = new Color(0.16f, 0.12f, 0.2f);
+            }
+            else if (sceneName == "HeartRealm_04")
+            {
+                left = new Color(0.18f, 0.12f, 0.22f);
+                right = new Color(0.14f, 0.1f, 0.18f);
+            }
             else
             {
                 float g = 0.34f;
@@ -538,17 +755,19 @@ namespace BrushSpirit
             }
 
             float ax, ay, asx, asy, bx, by, bsx, bsy;
-            if (sceneName == "InkForest_03" || sceneName == "EmberValley_03")
+            if (sceneName == "InkForest_03" || sceneName == "EmberValley_03" || sceneName == "HeartRealm_03" ||
+                sceneName == "HeartRealm_04")
             {
-                bool evBoss = sceneName == "EmberValley_03";
+                bool emberBoss = sceneName == "EmberValley_03";
+                bool heartBoss = sceneName == "HeartRealm_04";
                 ax = -17.5f;
-                ay = evBoss ? 0.65f : 0.5f;
+                ay = emberBoss || heartBoss ? 0.65f : 0.5f;
                 asx = 25f;
-                asy = evBoss ? 15.6f : 14f;
+                asy = emberBoss || heartBoss ? 15.6f : 14f;
                 bx = 20f;
-                by = evBoss ? 1.85f : 1.65f;
+                by = emberBoss || heartBoss ? 1.85f : 1.65f;
                 bsx = 29f;
-                bsy = evBoss ? 18.2f : 17f;
+                bsy = emberBoss || heartBoss ? 18.2f : 17f;
             }
             else if (sceneName == "EmberValley_01")
             {
@@ -562,6 +781,17 @@ namespace BrushSpirit
                 bsy = 11.8f;
             }
             else if (sceneName == "EmberValley_02")
+            {
+                ax = -8.5f;
+                ay = 0.15f;
+                asx = 18.5f;
+                asy = 11.5f;
+                bx = 8.5f;
+                by = 0.2f;
+                bsx = 17f;
+                bsy = 12f;
+            }
+            else if (sceneName == "HeartRealm_02")
             {
                 ax = -8.5f;
                 ay = 0.15f;
@@ -588,20 +818,26 @@ namespace BrushSpirit
             {
                 // 单张水墨背景模式：用 Sprite 原始宽高比覆盖整个游戏区域，不再分 L/R/Upper 拼接
                 Vector2 spriteSize = backgroundSprite.bounds.size; // 单位：world units
-                float sceneHalfWidth = sceneName == "InkForest_03" || sceneName == "EmberValley_03"
+                float sceneHalfWidth = sceneName == "InkForest_03" || sceneName == "EmberValley_03" ||
+                                       sceneName == "HeartRealm_03" || sceneName == "HeartRealm_04"
                     ? 30f
-                    : sceneName == "EmberValley_02"
+                    : sceneName == "EmberValley_02" || sceneName == "HeartRealm_02"
                         ? 18.5f
                         : sceneName == "EmberValley_01"
                             ? 22f
-                            : 24f;
-                float sceneHalfHeight = sceneName == "InkForest_03" || sceneName == "EmberValley_03"
+                            : sceneName == "HeartRealm_01"
+                                ? 25f
+                                : 24f;
+                float sceneHalfHeight = sceneName == "InkForest_03" || sceneName == "EmberValley_03" ||
+                                        sceneName == "HeartRealm_03" || sceneName == "HeartRealm_04"
                     ? 11f
-                    : sceneName == "EmberValley_02"
+                    : sceneName == "EmberValley_02" || sceneName == "HeartRealm_02"
                         ? 10.5f
                         : sceneName == "EmberValley_01"
                             ? 10.2f
-                            : 7.5f;
+                            : sceneName == "HeartRealm_01"
+                                ? 9.8f
+                                : 7.5f;
                 float scaleByW = (sceneHalfWidth * 2f) / Mathf.Max(0.01f, spriteSize.x);
                 float scaleByH = (sceneHalfHeight * 2f) / Mathf.Max(0.01f, spriteSize.y);
                 float fitScale = Mathf.Max(scaleByW, scaleByH); // 用较大值保证完全覆盖、不留空白边
@@ -635,18 +871,22 @@ namespace BrushSpirit
             _backdropB.sortingOrder = -11;
             b.transform.localScale = new Vector3(bsx, bsy, 1f);
 
-            if (sceneName == "InkForest_03" || sceneName == "EmberValley_03")
+            if (sceneName == "InkForest_03" || sceneName == "EmberValley_03" || sceneName == "HeartRealm_03" ||
+                sceneName == "HeartRealm_04")
             {
                 var c = new GameObject("BackdropUpper");
-                bool evBoss = sceneName == "EmberValley_03";
-                c.transform.position = new Vector3(3f, evBoss ? 8.4f : 7.8f, 0f);
+                bool emberBoss = sceneName == "EmberValley_03";
+                bool heartBoss = sceneName == "HeartRealm_04";
+                c.transform.position = new Vector3(3f, emberBoss || heartBoss ? 8.4f : 7.8f, 0f);
                 _backdropC = c.AddComponent<SpriteRenderer>();
                 _backdropC.sprite = spr;
-                _backdropC.color = sceneName == "EmberValley_03"
+                _backdropC.color = emberBoss
                     ? new Color(0.18f, 0.1f, 0.12f)
-                    : new Color(0.16f, 0.18f, 0.26f);
+                    : heartBoss
+                        ? new Color(0.12f, 0.08f, 0.18f)
+                        : new Color(0.15f, 0.14f, 0.24f);
                 _backdropC.sortingOrder = -14;
-                c.transform.localScale = new Vector3(36f, evBoss ? 13.5f : 12f, 1f);
+                c.transform.localScale = new Vector3(36f, emberBoss || heartBoss ? 13.5f : 12f, 1f);
                 if (backgroundSprite != null)
                 {
                     _backdropC.sprite = backgroundSprite;
@@ -667,14 +907,22 @@ namespace BrushSpirit
                             ? new Color(0.26f, 0.22f, 0.21f)
                             : sceneName == "EmberValley_02"
                                 ? new Color(0.22f, 0.19f, 0.18f)
-                                : sceneName == "EmberValley_03"
-                                    ? new Color(0.2f, 0.17f, 0.18f)
-                                    : new Color(0.22f, 0.23f, 0.25f);
+                        : sceneName == "EmberValley_03"
+                            ? new Color(0.2f, 0.17f, 0.18f)
+                            : sceneName == "HeartRealm_01"
+                                ? new Color(0.24f, 0.2f, 0.26f)
+                                : sceneName == "HeartRealm_02"
+                                    ? new Color(0.21f, 0.18f, 0.24f)
+                                    : sceneName == "HeartRealm_03"
+                                        ? new Color(0.19f, 0.16f, 0.23f)
+                                        : sceneName == "HeartRealm_04"
+                                            ? new Color(0.17f, 0.14f, 0.21f)
+                                            : new Color(0.22f, 0.23f, 0.25f);
 
             var g = new GameObject("Ground");
             g.tag = "Ground";
-            g.transform.position = new Vector3(0f, -4.25f, 0f);
-            g.transform.localScale = new Vector3(widthScale, 1.25f, 1f);
+            g.transform.position = new Vector3(0f, sceneName == "HeartRealm_01" ? -4.22f : -4.25f, 0f);
+            g.transform.localScale = new Vector3(widthScale, sceneName == "HeartRealm_01" ? 1.32f : 1.25f, 1f);
             var sr = g.AddComponent<SpriteRenderer>();
             sr.sprite = spr;
             sr.color = c;
@@ -941,11 +1189,19 @@ namespace BrushSpirit
                     ? new Color(0.36f, 0.30f, 0.28f)
                     : sceneName == "EmberValley_01"
                         ? new Color(0.40f, 0.34f, 0.32f)
-                        : sceneName == "InkForest_03"
-                            ? new Color(0.28f, 0.30f, 0.36f)
-                            : sceneName == "InkForest_02"
-                                ? new Color(0.32f, 0.33f, 0.36f)
-                                : new Color(0.36f, 0.37f, 0.40f);
+                        : sceneName == "HeartRealm_04"
+                            ? new Color(0.32f, 0.28f, 0.38f)
+                            : sceneName == "HeartRealm_03"
+                                ? new Color(0.34f, 0.3f, 0.4f)
+                                : sceneName == "HeartRealm_02"
+                                    ? new Color(0.36f, 0.32f, 0.4f)
+                                    : sceneName == "HeartRealm_01"
+                                        ? new Color(0.38f, 0.34f, 0.42f)
+                                        : sceneName == "InkForest_03"
+                                            ? new Color(0.28f, 0.30f, 0.36f)
+                                            : sceneName == "InkForest_02"
+                                                ? new Color(0.32f, 0.33f, 0.36f)
+                                                : new Color(0.36f, 0.37f, 0.40f);
 
             var stands = new List<PlatformSpawnInfo>();
 
@@ -1112,6 +1368,53 @@ namespace BrushSpirit
                     Plank(3f,   1.85f,  4.6f, 0.44f, PlatformStyleKind.Standard,    true);
                     Plank(14f,  0.3f,   4.3f, 0.44f, PlatformStyleKind.WideMoss,    true);
                     Plank(23f,  2.7f,   4.5f, 0.44f, PlatformStyleKind.CoolSlate,   true);
+                    break;
+                case "HeartRealm_01":
+                    Plank(-18f, -2.05f, 2.2f, 0.70f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-7f,  -1.15f, 2f, 0.68f, PlatformStyleKind.Standard,    false);
+                    Plank(7f,   -1.65f, 2.3f, 0.70f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(18f,  -1.95f, 2.1f, 0.68f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-12f, -0.95f, 4.4f, 0.78f, PlatformStyleKind.WideMoss,    true);
+                    Plank(8f,   -0.78f, 4.6f, 0.78f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(-5f,   2.25f, 4.2f, 0.76f, PlatformStyleKind.Standard,    true);
+                    Plank(10f,  2.45f, 4f, 0.76f, PlatformStyleKind.WideMoss,      true);
+                    Plank(-8f,  5.8f, 4.5f, 0.74f, PlatformStyleKind.CoolSlate,   true);
+                    break;
+                case "HeartRealm_02":
+                    // 裂帛廊：少量空中窄台 + 带巡逻的刷怪台，与倒置 ∧ 脊、链桥错层，避免再堆焚道式满屏大台。
+                    Plank(-13.5f, 0.28f, 1.65f, 0.36f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(13.2f, 0.28f, 1.65f, 0.36f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(0f, 2.35f, 2.5f, 0.38f, PlatformStyleKind.Standard, true);
+                    Plank(-8.2f, 3.95f, 2f, 0.36f, PlatformStyleKind.CoolSlate, true);
+                    Plank(8.4f, 3.95f, 2f, 0.36f, PlatformStyleKind.WideMoss, true);
+                    break;
+                case "HeartRealm_03":
+                case "HeartRealm_04":
+                    Plank(-26f, -2.35f, 2.2f, 0.42f, PlatformStyleKind.Standard,    false);
+                    Plank(-19f, -1.85f, 1.9f, 0.38f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(7.5f, -2.05f, 2.5f, 0.42f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(27f,  -1.55f, 2.3f, 0.40f, PlatformStyleKind.WideMoss,    false);
+                    Plank(-3f,  -0.35f, 2f,   0.36f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(4f,   -0.65f, 2.3f, 0.38f, PlatformStyleKind.Standard,    false);
+                    Plank(14f,  -1.05f, 2.2f, 0.38f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(-23f, 0.1f,   1.55f, 0.34f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-20f, 1f,     1.5f, 0.32f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-17f, 1.9f,   1.45f, 0.32f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(-1f,  3.35f,  2.9f, 0.38f, PlatformStyleKind.CoolSlate,   false);
+                    Plank(7f,   4.4f,   2.7f, 0.36f, PlatformStyleKind.NarrowRidge, false);
+                    Plank(16f,  5.5f,   2.85f, 0.38f, PlatformStyleKind.WideMoss,    false);
+                    Plank(-21f, -1.05f, 4.2f, 0.44f, PlatformStyleKind.WideMoss,    true);
+                    Plank(-9f,  0.4f,   4.5f, 0.44f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(3f,   1.85f,  4.6f, 0.44f, PlatformStyleKind.Standard,    true);
+                    Plank(14f,  0.3f,   4.3f, 0.44f, PlatformStyleKind.WideMoss,    true);
+                    Plank(23f,  2.7f,   4.5f, 0.44f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(-14f, 6.1f,   3.6f, 0.42f, PlatformStyleKind.NarrowRidge, true);
+                    Plank(2f,   6.45f,  3.8f, 0.42f, PlatformStyleKind.WideMoss,    true);
+                    Plank(18f,  6.25f,  3.5f, 0.42f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(-6f,  7.85f,  3.4f, 0.40f, PlatformStyleKind.Standard,    true);
+                    Plank(10f,  8.2f,   3.6f, 0.40f, PlatformStyleKind.WideMoss,    true);
+                    Plank(22f,  7.95f,  3.2f, 0.40f, PlatformStyleKind.CoolSlate,   true);
+                    Plank(-2f,  9.35f,  2.9f, 0.38f, PlatformStyleKind.NarrowRidge, true);
                     break;
             }
 

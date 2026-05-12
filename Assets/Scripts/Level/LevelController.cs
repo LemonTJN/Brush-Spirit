@@ -1,3 +1,5 @@
+using System.Collections;
+using BrushSpirit.Core;
 using BrushSpirit.Enemies;
 using BrushSpirit.UI;
 using UnityEngine;
@@ -16,6 +18,9 @@ namespace BrushSpirit.LevelFlow
 
         public string sectionClearTitle = "本段已肃清";
         public string sectionClearSubtitle = "准备进入下一段旅程。";
+
+        [Tooltip("≥0：清波后经真实时间（秒）自动切换下一关；<0 则仅弹出「继续前行」按钮。")]
+        public float autoAdvanceNextSceneDelay = -1f;
 
         [Tooltip("为 true 时不在 Start 中开波，需调用 StartDeferredWaves()（墨林 01 序章用）。")]
         public bool deferWaveStart;
@@ -60,7 +65,20 @@ namespace BrushSpirit.LevelFlow
             if (bossTemplate != null)
                 SpawnBoss();
             else if (!string.IsNullOrEmpty(nextSceneAfterWaves))
-                SectionContinuePrompt.Show(nextSceneAfterWaves, sectionClearTitle, sectionClearSubtitle);
+            {
+                if (autoAdvanceNextSceneDelay >= 0f)
+                    StartCoroutine(CoAutoAdvanceNextScene());
+                else
+                    SectionContinuePrompt.Show(nextSceneAfterWaves, sectionClearTitle, sectionClearSubtitle);
+            }
+        }
+
+        IEnumerator CoAutoAdvanceNextScene()
+        {
+            GameplayHudToast.Show(this, sectionClearTitle + "\n" + sectionClearSubtitle, 2.2f, 220);
+            yield return new WaitForSecondsRealtime(Mathf.Max(1.2f, autoAdvanceNextSceneDelay));
+            if (!string.IsNullOrEmpty(nextSceneAfterWaves))
+                SceneTransition.LoadScene(nextSceneAfterWaves);
         }
 
         void SpawnBoss()

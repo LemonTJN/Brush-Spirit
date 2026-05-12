@@ -85,7 +85,7 @@ namespace BrushSpirit
                 int lv = levelIndex;
                 btn.onClick.AddListener(() =>
                 {
-                    string scene = lv == 1 ? "InkForest_01" : lv == 2 ? "EmberValley_01" : "InkForest_01";
+                    string scene = lv == 1 ? "InkForest_01" : lv == 2 ? "EmberValley_01" : "HeartRealm_01";
                     SceneManager.LoadScene(scene);
                 });
             }
@@ -185,7 +185,7 @@ namespace BrushSpirit
                 int lv = level;
                 btn.onClick.AddListener(() =>
                 {
-                    string scene = lv == 1 ? "InkForest_01" : lv == 2 ? "EmberValley_01" : "InkForest_01";
+                    string scene = lv == 1 ? "InkForest_01" : lv == 2 ? "EmberValley_01" : "HeartRealm_01";
                     SceneManager.LoadScene(scene);
                 });
             }

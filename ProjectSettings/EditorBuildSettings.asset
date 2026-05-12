@@ -26,6 +26,18 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/EmberValley_03.scene
     guid: f102d3e4a5b6c79890d1e2f3a4b5c6d7
+  - enabled: 1
+    path: Assets/Scenes/HeartRealm_01.scene
+    guid: 6a1b2c3d4e5f6789012345a1b2c3d0e1
+  - enabled: 1
+    path: Assets/Scenes/HeartRealm_02.scene
+    guid: 6a1b2c3d4e5f6789012345a1b2c3d0e2
+  - enabled: 1
+    path: Assets/Scenes/HeartRealm_03.scene
+    guid: 6a1b2c3d4e5f6789012345a1b2c3d0e3
+  - enabled: 1
+    path: Assets/Scenes/HeartRealm_04.scene
+    guid: 6a1b2c3d4e5f6789012345a1b2c3d0e4
   - enabled: 0
     path: Assets/Scenes/InkForest.scene
     guid: a1b2c3d4e5f6677889900aabbccdde02

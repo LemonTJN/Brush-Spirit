@@ -18,6 +18,9 @@ namespace BrushSpirit.LevelFlow
 
         public System.Func<Transform, SimpleEnemy> EnemyFactory { get; set; }
 
+        /// <summary>当前波第一个生成点世界 X（在生成敌人之前写入，供裂帛等机关绑定侧别）。</summary>
+        public float LastWaveFirstSpawnWorldX { get; private set; }
+
         [Tooltip("每一波敌人全灭后、下一波开始前的等待（秒，受 timeScale 影响时用 WaitForSecondsRealtime）")]
         public float delayBetweenWaves = 0f;
 
@@ -62,6 +65,9 @@ namespace BrushSpirit.LevelFlow
                             _fallbackSpawn.position = transform.position + Vector3.right * (i - count * 0.5f);
                             sp = _fallbackSpawn;
                         }
+
+                        if (i == 0)
+                            LastWaveFirstSpawnWorldX = sp.position.x;
 
                         var e = EnemyFactory != null ? EnemyFactory(sp) : null;
                         if (e != null)

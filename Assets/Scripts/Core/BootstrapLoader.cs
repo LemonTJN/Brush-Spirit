@@ -37,6 +37,12 @@ namespace BrushSpirit.Core
             return sceneName == "EmberValley_01" || sceneName == "EmberValley_02" || sceneName == "EmberValley_03";
         }
 
+        static bool IsHeartRealmScene(string sceneName)
+        {
+            return sceneName == "HeartRealm_01" || sceneName == "HeartRealm_02" || sceneName == "HeartRealm_03" ||
+                   sceneName == "HeartRealm_04";
+        }
+
         static void TryBootstrap(Scene loadedScene)
         {
             var sceneName = loadedScene.name;
@@ -45,7 +51,7 @@ namespace BrushSpirit.Core
                 var go = new GameObject("MenuRuntimeBootstrap");
                 go.AddComponent<MenuRuntimeBootstrap>();
             }
-            else if ((IsInkForestScene(sceneName) || IsEmberValleyScene(sceneName)) &&
+            else if ((IsInkForestScene(sceneName) || IsEmberValleyScene(sceneName) || IsHeartRealmScene(sceneName)) &&
                      !HasLevelControllerInScene(loadedScene))
             {
                 var prefab = Resources.Load<GameObject>("GameRuntimeBootstrap");

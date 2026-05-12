@@ -1,5 +1,6 @@
 using System.Collections;
 using BrushSpirit.Core;
+using BrushSpirit.LevelFlow;
 using UnityEngine;
 
 namespace BrushSpirit.Player
@@ -210,7 +211,8 @@ namespace BrushSpirit.Player
                 if (d == null)
                     d = h.GetComponentInParent<IDamageable>();
                 if (d == null) continue;
-                d.TakeDamage(damage, gameObject, knockbackImpulseX);
+                float dmgMul = HeartSceneEnvironment.GetOutgoingDamageMultiplierOnTarget(h.bounds.center);
+                d.TakeDamage(damage * dmgMul, gameObject, knockbackImpulseX);
 
                 if (gb != null && gb.attackHitPrefab != null)
                 {
