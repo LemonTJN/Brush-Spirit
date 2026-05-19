@@ -417,6 +417,7 @@ namespace BrushSpirit
                 float halfEv3 = groundWidth * 0.5f - 3.2f;
                 // 清波阶段略疏；Boss 出现后冷却明显缩短，并配合连发（见 Spawner）
                 ember03AshSpawner.ConfigureWithBossPhase(spr, -halfEv3, halfEv3, -3.12f, 2.75f, 4.35f, 0.72f, 1.25f);
+                ember03AshSpawner.SetRadialSplash(true);
             }
 
             if (sn == "HeartRealm_02" || sn == "HeartRealm_03" || sn == "HeartRealm_04")
@@ -1023,66 +1024,91 @@ namespace BrushSpirit
             Patch(Mathf.Min(7.5f, half - 1.5f), 2.6f, 0.42f);
         }
 
-        /// <summary>焚道：部分平台顶有余烬带（与 <see cref="BuildPlatforms"/> 坐标对齐，错落约半数以留出安全台）。</summary>
-        static void BuildEmberValley02PlatformCinders(Sprite spr)
+        struct EmberPlatformCinderDef
         {
-            var root = new GameObject("CinderPlatformRoot_02").transform;
-            var tint = new Color(0.52f, 0.12f, 0.08f, 0.42f);
-            const int sortOrder = 2;
-
-            void Strip(float platX, float platY, float platW, float platH, float widthMul, float xOffset = 0f)
-            {
-                float top = platY + platH * 0.5f;
-                const float stripH = 0.2f;
-                float stripW = Mathf.Max(0.35f, platW * widthMul);
-                float cx = platX + xOffset;
-                float cy = top - stripH * 0.5f + 0.03f;
-                var go = new GameObject("CinderPlatformStrip");
-                go.layer = 0;
-                go.transform.SetParent(root);
-                go.transform.position = new Vector3(cx, cy, 0f);
-                go.transform.localScale = new Vector3(stripW, stripH, 1f);
-                var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = spr;
-                sr.color = tint;
-                sr.sortingOrder = sortOrder;
-                var box = go.AddComponent<BoxCollider2D>();
-                box.isTrigger = true;
-                go.AddComponent<EmberCinderZone>();
-            }
-
-            // 无：底层 -16 / 5；长台 4；中转 -2.5、12；窄台 -12、13；长台 -4 仅一侧；顶层 1 仅一条
-            Strip(-5f, -1.2f, 1.8f, 0.65f, 0.48f, 0.15f);
-            Strip(15f, -2f, 1.75f, 0.66f, 0.5f);
-            Strip(-10f, -0.82f, 3.6f, 0.76f, 0.44f, 0f);
-            Strip(-14f, 2.05f, 2.2f, 0.66f, 0.48f);
-            Strip(-6f, 2.9f, 3.4f, 0.74f, 0.4f, 0.15f);
-            Strip(7f, 3.1f, 3.2f, 0.74f, 0.42f, -0.35f);
-            Strip(2f, 4.5f, 1.7f, 0.6f, 0.48f);
-            Strip(-4f, 5.6f, 3.2f, 0.72f, 0.38f, 0.55f);
-            Strip(8f, 5.85f, 3f, 0.72f, 0.42f, 0f);
-            Strip(1f, 7f, 2.8f, 0.7f, 0.48f, 0f);
+            public float x, y, w, h;
+            public bool enemySpawn;
         }
 
-        /// <summary>焰心：部分平台顶有余烬带（与 <see cref="BuildPlatforms"/> 坐标对齐，长台亦只覆盖部分段落）。</summary>
+        /// <summary>焚道 / 焰心：非刷怪平台随机铺烬口；刷怪平台（与 <see cref="BuildPlatforms"/> registerSpawn 一致）永不铺烬。</summary>
+        static void BuildEmberValley02PlatformCinders(Sprite spr)
+        {
+            var defs = new[]
+            {
+                new EmberPlatformCinderDef { x = -16f, y = -2.1f, w = 1.75f, h = 0.66f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -5f, y = -1.2f, w = 1.8f, h = 0.65f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 5f, y = -1.75f, w = 2f, h = 0.67f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 15f, y = -2f, w = 1.75f, h = 0.66f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -10f, y = -0.82f, w = 3.6f, h = 0.76f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 4f, y = -0.72f, w = 3.5f, h = 0.76f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = -2.5f, y = 1.15f, w = 2.4f, h = 0.68f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -14f, y = 2.05f, w = 2.2f, h = 0.66f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 12f, y = 2f, w = 2.2f, h = 0.66f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -6f, y = 2.9f, w = 3.4f, h = 0.74f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 7f, y = 3.1f, w = 3.2f, h = 0.74f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = -12f, y = 4.35f, w = 1.65f, h = 0.60f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 2f, y = 4.5f, w = 1.7f, h = 0.60f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 13f, y = 4.25f, w = 1.65f, h = 0.60f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -4f, y = 5.6f, w = 3.2f, h = 0.72f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 8f, y = 5.85f, w = 3f, h = 0.72f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 1f, y = 7f, w = 2.8f, h = 0.70f, enemySpawn = true },
+            };
+            BuildEmberValleyPlatformCindersRandom(spr, "02", defs, 0.58f,
+                new Color(0.52f, 0.12f, 0.08f, 0.42f), 0.2f);
+        }
+
         static void BuildEmberValley03PlatformCinders(Sprite spr)
         {
-            var root = new GameObject("CinderPlatformRoot_03").transform;
-            var tint = new Color(0.56f, 0.13f, 0.09f, 0.45f);
+            var defs = new[]
+            {
+                new EmberPlatformCinderDef { x = -26f, y = -2.35f, w = 2.2f, h = 0.42f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -19f, y = -1.85f, w = 1.9f, h = 0.38f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 7.5f, y = -2.05f, w = 2.5f, h = 0.42f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 27f, y = -1.55f, w = 2.3f, h = 0.40f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -3f, y = -0.35f, w = 2f, h = 0.36f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 4f, y = -0.65f, w = 2.3f, h = 0.38f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 14f, y = -1.05f, w = 2.2f, h = 0.38f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -23f, y = 0.1f, w = 1.55f, h = 0.34f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -20f, y = 1f, w = 1.5f, h = 0.32f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -17f, y = 1.9f, w = 1.45f, h = 0.32f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -1f, y = 3.35f, w = 2.9f, h = 0.38f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 7f, y = 4.4f, w = 2.7f, h = 0.36f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = 16f, y = 5.5f, w = 2.85f, h = 0.38f, enemySpawn = false },
+                new EmberPlatformCinderDef { x = -21f, y = -1.05f, w = 4.2f, h = 0.44f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = -9f, y = 0.4f, w = 4.5f, h = 0.44f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 3f, y = 1.85f, w = 4.6f, h = 0.44f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 14f, y = 0.3f, w = 4.3f, h = 0.44f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 23f, y = 2.7f, w = 4.5f, h = 0.44f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = -14f, y = 6.1f, w = 3.6f, h = 0.42f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 2f, y = 6.45f, w = 3.8f, h = 0.42f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 18f, y = 6.25f, w = 3.5f, h = 0.42f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = -6f, y = 7.85f, w = 3.4f, h = 0.40f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 10f, y = 8.2f, w = 3.6f, h = 0.40f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = 22f, y = 7.95f, w = 3.2f, h = 0.40f, enemySpawn = true },
+                new EmberPlatformCinderDef { x = -2f, y = 9.35f, w = 2.9f, h = 0.38f, enemySpawn = true },
+            };
+            BuildEmberValleyPlatformCindersRandom(spr, "03", defs, 0.55f,
+                new Color(0.56f, 0.13f, 0.09f, 0.45f), 0.16f);
+        }
+
+        static void BuildEmberValleyPlatformCindersRandom(Sprite spr, string sceneKey,
+            EmberPlatformCinderDef[] defs, float cinderChance, Color tint, float stripHeight)
+        {
+            var root = new GameObject($"CinderPlatformRoot_{sceneKey}").transform;
             const int sortOrder = 2;
+            var rng = new System.Random($"EmberCinder_{sceneKey}".GetHashCode());
 
             void Strip(float platX, float platY, float platW, float platH, float widthMul, float xOffset = 0f)
             {
                 float top = platY + platH * 0.5f;
-                const float stripH = 0.16f;
                 float stripW = Mathf.Max(0.28f, platW * widthMul);
                 float cx = platX + xOffset;
-                float cy = top - stripH * 0.5f + 0.02f;
+                float cy = top - stripHeight * 0.5f + 0.02f;
                 var go = new GameObject("CinderPlatformStrip");
                 go.layer = 0;
                 go.transform.SetParent(root);
                 go.transform.position = new Vector3(cx, cy, 0f);
-                go.transform.localScale = new Vector3(stripW, stripH, 1f);
+                go.transform.localScale = new Vector3(stripW, stripHeight, 1f);
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sprite = spr;
                 sr.color = tint;
@@ -1092,28 +1118,27 @@ namespace BrushSpirit
                 go.AddComponent<EmberCinderZone>();
             }
 
-            void StripPair(float platX, float platY, float platW, float platH, float widthMul)
+            for (int i = 0; i < defs.Length; i++)
             {
-                float off = platW * 0.22f;
-                Strip(platX, platY, platW, platH, widthMul, -off);
-                Strip(platX, platY, platW, platH, widthMul, off);
-            }
+                var d = defs[i];
+                if (d.enemySpawn) continue;
+                if (rng.NextDouble() > cinderChance) continue;
 
-            // 无：-26、27、4、14、-20、7；-9/14/18/10 长台；-14 高层；顶层仅一条余烬
-            Strip(-19f, -1.85f, 1.9f, 0.38f, 0.42f);
-            Strip(7.5f, -2.05f, 2.5f, 0.42f, 0.4f);
-            Strip(-3f, -0.35f, 2f, 0.36f, 0.45f);
-            Strip(-23f, 0.1f, 1.55f, 0.34f, 0.48f);
-            Strip(-17f, 1.9f, 1.45f, 0.32f, 0.48f);
-            Strip(-1f, 3.35f, 2.9f, 0.38f, 0.4f);
-            Strip(16f, 5.5f, 2.85f, 0.38f, 0.4f);
-            StripPair(-21f, -1.05f, 4.2f, 0.44f, 0.32f);
-            StripPair(3f, 1.85f, 4.6f, 0.44f, 0.32f);
-            StripPair(23f, 2.7f, 4.5f, 0.44f, 0.32f);
-            StripPair(2f, 6.45f, 3.8f, 0.42f, 0.34f);
-            StripPair(-6f, 7.85f, 3.4f, 0.4f, 0.34f);
-            StripPair(22f, 7.95f, 3.2f, 0.4f, 0.34f);
-            Strip(-2f, 9.35f, 2.9f, 0.38f, 0.42f, 0.35f);
+                float widthMul = 0.32f + (float)rng.NextDouble() * 0.2f;
+                bool wide = d.w >= 3f;
+                if (wide && rng.NextDouble() < 0.42f)
+                {
+                    float off = d.w * (0.18f + (float)rng.NextDouble() * 0.08f);
+                    Strip(d.x, d.y, d.w, d.h, widthMul, -off);
+                    if (rng.NextDouble() < 0.65f)
+                        Strip(d.x, d.y, d.w, d.h, widthMul * 0.92f, off);
+                }
+                else
+                {
+                    float xOff = ((float)rng.NextDouble() - 0.5f) * d.w * 0.14f;
+                    Strip(d.x, d.y, d.w, d.h, widthMul, xOff);
+                }
+            }
         }
 
         /// <summary>树心关两侧实体挡墙（Ground），可蹬墙跳；与屏幕四边挡板不同，沿场地宽度固定。</summary>

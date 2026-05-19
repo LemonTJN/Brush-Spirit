@@ -18,6 +18,10 @@ namespace BrushSpirit.LevelFlow
         float _bossMinCd;
         float _bossMaxCd;
         bool _bossPhase;
+        bool _radialSplash;
+
+        /// <summary>烬谷 03：爆灰爆炸后 360° 溅射伤害。</summary>
+        public void SetRadialSplash(bool enabled) => _radialSplash = enabled;
 
         /// <summary>焚道等：全程同一冷却区间。</summary>
         public void Configure(Sprite ringSprite, float minX, float maxX, float spawnY, float minCooldown,
@@ -97,7 +101,8 @@ namespace BrushSpirit.LevelFlow
                 warn,
                 rad,
                 dmg,
-                knock);
+                knock,
+                _radialSplash);
         }
     }
 }
