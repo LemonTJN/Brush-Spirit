@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using BrushSpirit.Core;
+using BrushSpirit.Environment;
 using BrushSpirit.Enemies;
 using BrushSpirit.Items;
 using BrushSpirit.LevelFlow;
@@ -62,6 +63,13 @@ namespace BrushSpirit
         {
             _instance = this;
             string sn = SceneManager.GetActiveScene().name;
+            if (SunsetMagicFloorSprites.IsInkForestScene(sn))
+                SunsetMagicFloorSprites.EnsureLoaded();
+            if (DungeonEmberPlatformSprites.IsEmberValleyScene(sn))
+            {
+                DungeonEmberPlatformSprites.EnsureLoaded();
+                DungeonEmberPlatformSprites.EnsureBackgroundLoaded();
+            }
             EnsureEventSystem();
             Physics2D.gravity = new Vector2(0f, -30f);
             var spr = MakeWhiteSprite();
@@ -816,10 +824,20 @@ namespace BrushSpirit
                 bsy = 7f;
             }
 
-            if (backgroundSprite != null)
+            // 焚道关固定用 Dungeon 岩壁；水墨 backgroundSprite 仅用于墨林等非焚道场景
+            Sprite fullscreenBackdrop = null;
+            if (DungeonEmberPlatformSprites.IsEmberValleyScene(sceneName))
             {
-                // 单张水墨背景模式：用 Sprite 原始宽高比覆盖整个游戏区域，不再分 L/R/Upper 拼接
-                Vector2 spriteSize = backgroundSprite.bounds.size; // 单位：world units
+                if (!DungeonEmberPlatformSprites.TryGetBackground(out fullscreenBackdrop))
+                    fullscreenBackdrop = backgroundSprite;
+            }
+            else if (backgroundSprite != null)
+                fullscreenBackdrop = backgroundSprite;
+
+            if (fullscreenBackdrop != null)
+            {
+                // 单张背景：按 Sprite 宽高比铺满场地（水墨 / 焚道岩壁）
+                Vector2 spriteSize = fullscreenBackdrop.bounds.size; // 单位：world units
                 float sceneHalfWidth = sceneName == "InkForest_03" || sceneName == "EmberValley_03" ||
                                        sceneName == "HeartRealm_03" || sceneName == "HeartRealm_04"
                     ? 30f
@@ -847,7 +865,7 @@ namespace BrushSpirit
                 var a = new GameObject("BackdropL");
                 a.transform.position = new Vector3(0f, (ay + by) * 0.5f, 0f);
                 _backdropA = a.AddComponent<SpriteRenderer>();
-                _backdropA.sprite = backgroundSprite;
+                _backdropA.sprite = fullscreenBackdrop;
                 _backdropA.color = Color.white;
                 _backdropA.sortingOrder = -12;
                 a.transform.localScale = new Vector3(fitScale, fitScale, 1f);
@@ -899,6 +917,10 @@ namespace BrushSpirit
 
         static void BuildGround(Sprite spr, float widthScale, string sceneName)
         {
+            if (SunsetMagicFloorSprites.IsInkForestScene(sceneName) &&
+                BuildInkForestTiledGround(widthScale))
+                return;
+
             Color c = sceneName == "InkForest_03"
                 ? new Color(0.16f, 0.17f, 0.22f)
                 : sceneName == "InkForest_02"
@@ -935,6 +957,58 @@ namespace BrushSpirit
                 sr.color = Color.white;
             }
             g.AddComponent<BoxCollider2D>();
+        }
+
+        /// <summary>
+        /// 墨林主地面：Floor_1u / 2u / 3u 按统一高度横向循环拼接；碰撞仍为整宽地面。
+        /// </summary>
+        static bool BuildInkForestTiledGround(float groundWidth)
+        {
+            var upSprites = SunsetMagicFloorSprites.GetUpSprites();
+            if (upSprites.Length == 0)
+                return false;
+
+            const float groundY = -4.25f;
+            const float groundH = 1.25f;
+
+            var root = new GameObject("Ground");
+            root.tag = "Ground";
+            root.transform.position = new Vector3(0f, groundY, 0f);
+
+            var box = root.AddComponent<BoxCollider2D>();
+            box.size = new Vector2(groundWidth, groundH);
+
+            var tilesRoot = new GameObject("GroundTiles").transform;
+            tilesRoot.SetParent(root.transform, false);
+
+            float left = -groundWidth * 0.5f;
+            float right = groundWidth * 0.5f;
+            float cursor = left;
+            int tileIndex = 0;
+
+            while (cursor < right - 0.001f)
+            {
+                var tileSpr = upSprites[tileIndex % upSprites.Length];
+                Vector2 native = tileSpr.bounds.size;
+                float sy = native.y > 0.0001f ? groundH / native.y : 1f;
+                float scaledW = native.x * sy;
+                float centerX = cursor + scaledW * 0.5f;
+
+                var tile = new GameObject($"GroundTile_{tileIndex}");
+                tile.transform.SetParent(tilesRoot, false);
+                tile.transform.localPosition = new Vector3(centerX, 0f, 0f);
+                tile.transform.localScale = new Vector3(sy, sy, 1f);
+
+                var sr = tile.AddComponent<SpriteRenderer>();
+                sr.sprite = tileSpr;
+                sr.color = Color.white;
+                sr.sortingOrder = -6;
+
+                cursor += scaledW;
+                tileIndex++;
+            }
+
+            return true;
         }
 
         /// <summary>烬口：地面余烬带（触发伤害），视觉为半透明暗红裂纹。</summary>
@@ -1230,6 +1304,8 @@ namespace BrushSpirit
                                                 : new Color(0.36f, 0.37f, 0.40f);
 
             var stands = new List<PlatformSpawnInfo>();
+            bool inkForestFloors = SunsetMagicFloorSprites.IsInkForestScene(sceneName);
+            bool emberValleyPlatforms = DungeonEmberPlatformSprites.IsEmberValleyScene(sceneName);
 
             Color StyleColor(Color @base, PlatformStyleKind style)
             {
@@ -1263,16 +1339,35 @@ namespace BrushSpirit
                 go.tag = "Ground";
                 go.transform.SetParent(root);
                 go.transform.position = new Vector3(x, y, 0f);
-                go.transform.localScale = new Vector3(w, h, 1f);
                 var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = spr;
-                sr.color = StyleColor(baseTint, style);
                 sr.sortingOrder = StyleSort(style);
-                if (_instance != null && _instance.platformSprite != null)
+
+                // 占位白块为 1×1 世界单位，localScale=(w,h) 即平台尺寸；Floor 贴图需按 bounds 反算缩放。
+                if (inkForestFloors && SunsetMagicFloorSprites.TryPickRandom(out var inkFloorSpr))
                 {
-                    sr.sprite = _instance.platformSprite;
+                    sr.sprite = inkFloorSpr;
                     sr.color = Color.white;
+                    go.transform.localScale = SunsetMagicFloorSprites.ScaleToWorldSize(inkFloorSpr, w, h);
                 }
+                else if (emberValleyPlatforms && DungeonEmberPlatformSprites.TryPickRandom(out var emberPlatSpr))
+                {
+                    sr.sprite = emberPlatSpr;
+                    sr.color = Color.white;
+                    go.transform.localScale = DungeonEmberPlatformSprites.ScaleToWorldSize(emberPlatSpr, w, h);
+                }
+                else
+                {
+                    sr.sprite = spr;
+                    sr.color = StyleColor(baseTint, style);
+                    go.transform.localScale = new Vector3(w, h, 1f);
+                    if (_instance != null && _instance.platformSprite != null)
+                    {
+                        sr.sprite = _instance.platformSprite;
+                        sr.color = Color.white;
+                        go.transform.localScale = SunsetMagicFloorSprites.ScaleToWorldSize(_instance.platformSprite, w, h);
+                    }
+                }
+
                 go.AddComponent<BoxCollider2D>();
                 if (!registerSpawn) return;
 
