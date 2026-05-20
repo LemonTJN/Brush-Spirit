@@ -10,7 +10,7 @@ namespace BrushSpirit.Core
         public Transform target;
         public Vector2 focusOffset = new Vector2(2.5f, 1.2f);
         [Tooltip("位置平滑时间；≤0 则每帧直接贴合目标。")]
-        public float smoothTime = 0.14f;
+        public float smoothTime = 0.06f;
 
         public float minX = -50f;
         public float maxX = 50f;

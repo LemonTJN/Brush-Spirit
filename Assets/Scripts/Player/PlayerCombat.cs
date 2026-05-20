@@ -1,6 +1,7 @@
 using System.Collections;
 using BrushSpirit.Core;
 using BrushSpirit.LevelFlow;
+using BrushSpirit.UI;
 using UnityEngine;
 
 namespace BrushSpirit.Player
@@ -33,7 +34,52 @@ namespace BrushSpirit.Player
         bool _busy;
 
         public enum WeaponMode { Bare = 1, Sword = 2, Pistol = 3 }
-        public WeaponMode CurrentWeapon { get; private set; } = WeaponMode.Sword;
+        public WeaponMode CurrentWeapon { get; private set; } = WeaponMode.Bare;
+
+        // ──────────────────────────────────────────────
+        // 武器伤害系数：参考 Devil May Cry / Hollow Knight 的「武器基础倍率 × 动作倍率」体系。
+        //   - 拳偏轻，连击曲线温和；剑标准，连击末段大幅加伤；枪 J 走子弹独立伤害。
+        //   - K（墨爆）、L（三连）是「水墨技能」，仍受武器倍率影响（拿剑后清场更强）。
+        // ──────────────────────────────────────────────
+        [Header("武器伤害倍率（武器系数）")]
+        [Tooltip("赤手空拳 — 攻击力倍率")]
+        public float bareDamageMul = 0.65f;
+        [Tooltip("剑 — 攻击力倍率")]
+        public float swordDamageMul = 1.15f;
+        [Tooltip("枪 — 近战 K/L 技能时的倍率（J 走子弹独立伤害）")]
+        public float pistolMeleeMul = 0.85f;
+        [Tooltip("枪 — 子弹伤害额外系数（与 pistolDamage 相乘）")]
+        public float pistolBulletMul = 1.0f;
+
+        [Header("J 连击曲线（三段循环）")]
+        public float[] bareComboMuls  = { 1.00f, 1.05f, 1.15f };
+        public float[] swordComboMuls = { 1.00f, 1.18f, 1.42f };
+
+        [Header("技能动作倍率（再乘武器倍率）")]
+        [Tooltip("K 墨爆 AOE 的动作倍率（剑形态实际伤害 ≈ 1.15 × 1.50 = 1.7×攻击力）")]
+        public float kSkillActionMul = 1.50f;
+        [Tooltip("L 三连每段的动作倍率（每段独立结算）")]
+        public float lSkillActionMul = 1.05f;
+
+        [Header("武器范围倍率（影响 J / L 的命中盒尺寸）")]
+        public float bareRangeMul = 0.85f;
+        public float swordRangeMul = 1.15f;
+
+        /// <summary>本次 Run 内是否已通过拾取解锁「剑」形态。</summary>
+        public static bool HasSword;
+
+        /// <summary>本次 Run 内是否已通过拾取解锁「枪」形态。</summary>
+        public static bool HasPistol;
+
+        /// <summary>玩家死亡 / 返回菜单时清空解锁状态，由 PlayerRunCarry.ClearRun 调用。</summary>
+        public static void ResetUnlocks()
+        {
+            HasSword = false;
+            HasPistol = false;
+        }
+
+        bool _initialVisualApplied;
+        float _lockedToastCd;
 
         [Header("手枪")]
         public float pistolFireCooldown = 0.35f;
@@ -67,6 +113,12 @@ namespace BrushSpirit.Player
         void Start()
         {
             CacheRefs();
+            // 进入游戏默认赤手空拳；显式应用一次形态视觉，覆盖 BuildPlayer 时挂的默认 Animator Controller
+            if (!_initialVisualApplied)
+            {
+                ApplyWeaponVisual(CurrentWeapon);
+                _initialVisualApplied = true;
+            }
         }
 
         void CacheRefs()
@@ -81,6 +133,7 @@ namespace BrushSpirit.Player
             if (KCdRemaining > 0f) KCdRemaining -= Time.deltaTime;
             if (LCdRemaining > 0f) LCdRemaining -= Time.deltaTime;
             if (_pistolCdRemaining > 0f) _pistolCdRemaining -= Time.deltaTime;
+            if (_lockedToastCd > 0f) _lockedToastCd -= Time.deltaTime;
 
             // 1/2/3 切换武器
             if (Input.GetKeyDown(KeyCode.Alpha1)) SetWeapon(WeaponMode.Bare);
@@ -100,8 +153,11 @@ namespace BrushSpirit.Player
                 }
                 else
                 {
-                    float mult = _comboIndex == 0 ? 1f : _comboIndex == 1 ? 1.1f : 1.25f;
-                    DealMeleeWide(mult, new Color(1f, 0.92f, 0.55f, 0.58f), 0.12f, 1f, knockbackJL);
+                    // 单段伤害 = baseAttack × 武器基础倍率 × 连击曲线
+                    float comboMul = GetComboStepMul(_comboIndex);
+                    float weaponMul = GetWeaponBaseMul();
+                    DealMeleeWide(comboMul * weaponMul, new Color(1f, 0.92f, 0.55f, 0.58f),
+                        0.12f, GetWeaponRangeMul(), knockbackJL);
                     _comboIndex = (_comboIndex + 1) % 3;
                     if (_anim != null) _anim.SetTrigger(kAttack);
                 }
@@ -121,19 +177,40 @@ namespace BrushSpirit.Player
 
         public void SetWeapon(WeaponMode mode)
         {
-            CurrentWeapon = mode;
-            var gb = BrushSpirit.GameRuntimeBootstrap.Instance;
-            if (_anim != null && gb != null)
+            if (mode == WeaponMode.Sword && !HasSword)
             {
-                RuntimeAnimatorController ctl = null;
-                switch (mode)
-                {
-                    case WeaponMode.Bare:   ctl = gb.bareController; break;
-                    case WeaponMode.Sword:  ctl = gb.playerController; break;
-                    case WeaponMode.Pistol: ctl = gb.pistolController; break;
-                }
-                if (ctl != null) _anim.runtimeAnimatorController = ctl;
+                ShowLockedToast("尚未获得 剑，击败敌人会有掉落。");
+                return;
             }
+            if (mode == WeaponMode.Pistol && !HasPistol)
+            {
+                ShowLockedToast("尚未获得 枪，击败更多敌人后掉落。");
+                return;
+            }
+
+            CurrentWeapon = mode;
+            ApplyWeaponVisual(mode);
+        }
+
+        void ApplyWeaponVisual(WeaponMode mode)
+        {
+            var gb = BrushSpirit.GameRuntimeBootstrap.Instance;
+            if (_anim == null || gb == null) return;
+            RuntimeAnimatorController ctl = null;
+            switch (mode)
+            {
+                case WeaponMode.Bare:   ctl = gb.bareController; break;
+                case WeaponMode.Sword:  ctl = gb.playerController; break;
+                case WeaponMode.Pistol: ctl = gb.pistolController; break;
+            }
+            if (ctl != null) _anim.runtimeAnimatorController = ctl;
+        }
+
+        void ShowLockedToast(string message)
+        {
+            if (_lockedToastCd > 0f) return;
+            _lockedToastCd = 1.6f;
+            GameplayHudToast.Show(this, message, 1.8f, 190);
         }
 
         void FirePistol()
@@ -145,7 +222,7 @@ namespace BrushSpirit.Player
             var inst = Object.Instantiate(gb.bulletPrefab, muzzle, Quaternion.identity);
             var b = inst.GetComponent<Bullet>();
             if (b == null) b = inst.AddComponent<Bullet>();
-            b.Launch(new Vector2(facingDir, 0f), gameObject, pistolDamage);
+            b.Launch(new Vector2(facingDir, 0f), gameObject, pistolDamage * pistolBulletMul);
         }
 
         IEnumerator DoBlast()
@@ -154,7 +231,8 @@ namespace BrushSpirit.Player
             KCdRemaining = kCooldown;
             yield return new WaitForSeconds(0.08f);
             SpawnAttackCircleFx(BodyCenter, kSkillRadius);
-            DealCircle(kSkillRadius, 1.5f, knockbackK);
+            // K 墨爆 = baseAttack × 武器倍率 × 动作倍率
+            DealCircle(kSkillRadius, kSkillActionMul * GetWeaponBaseMul(), knockbackK);
             yield return new WaitForSeconds(0.2f);
             _busy = false;
         }
@@ -164,13 +242,45 @@ namespace BrushSpirit.Player
             _busy = true;
             LCdRemaining = lCooldown;
             if (_anim != null) _anim.SetTrigger(kCombo);
+            // L 三连：每段独立结算 = baseAttack × 武器倍率 × 动作倍率
+            float lDmgMul = lSkillActionMul * GetWeaponBaseMul();
+            float lRangeMul = GetWeaponRangeMul() * 1.08f; // 三连略大
             for (int i = 0; i < 3; i++)
             {
-                DealMeleeWide(1f, new Color(1f, 0.45f, 0.15f, 0.72f), 0.24f, 1.08f, knockbackJL);
+                DealMeleeWide(lDmgMul, new Color(1f, 0.45f, 0.15f, 0.72f), 0.24f, lRangeMul, knockbackJL);
                 yield return new WaitForSeconds(0.22f);
             }
 
             _busy = false;
+        }
+
+        // ── 武器系数辅助方法 ──
+        public float GetWeaponBaseMul()
+        {
+            switch (CurrentWeapon)
+            {
+                case WeaponMode.Bare:   return bareDamageMul;
+                case WeaponMode.Sword:  return swordDamageMul;
+                case WeaponMode.Pistol: return pistolMeleeMul;
+            }
+            return 1f;
+        }
+
+        float GetWeaponRangeMul()
+        {
+            switch (CurrentWeapon)
+            {
+                case WeaponMode.Bare:  return bareRangeMul;
+                case WeaponMode.Sword: return swordRangeMul;
+            }
+            return 1f;
+        }
+
+        float GetComboStepMul(int idx)
+        {
+            float[] muls = CurrentWeapon == WeaponMode.Sword ? swordComboMuls : bareComboMuls;
+            if (muls == null || muls.Length == 0) return 1f;
+            return muls[Mathf.Clamp(idx, 0, muls.Length - 1)];
         }
 
         /// <summary>朝向方向的攻击盒：跟随主角面朝方向，只覆盖身前。</summary>

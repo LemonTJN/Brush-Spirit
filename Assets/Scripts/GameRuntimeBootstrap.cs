@@ -79,9 +79,9 @@ namespace BrushSpirit
             SectionEnemyTuning enemyTune = DefaultEnemyTuning();
             SectionBossTuning bossTune = new SectionBossTuning
             {
-                maxHp = 210f,
-                moveSpeed = 2.6f,
-                slamDamage = 26f
+                maxHp = 520f,
+                moveSpeed = 2.8f,
+                slamDamage = 30f
             };
 
             switch (sn)
@@ -149,9 +149,9 @@ namespace BrushSpirit
                     };
                     bossTune = new SectionBossTuning
                     {
-                        maxHp = 260f,
-                        moveSpeed = 2.85f,
-                        slamDamage = 32f
+                        maxHp = 620f,
+                        moveSpeed = 3.0f,
+                        slamDamage = 34f
                     };
                     break;
                 case "EmberValley_01":
@@ -221,9 +221,9 @@ namespace BrushSpirit
                     };
                     bossTune = new SectionBossTuning
                     {
-                        maxHp = 260f,
-                        moveSpeed = 2.85f,
-                        slamDamage = 32f
+                        maxHp = 620f,
+                        moveSpeed = 3.0f,
+                        slamDamage = 34f
                     };
                     break;
                 case "HeartRealm_01":
@@ -316,9 +316,9 @@ namespace BrushSpirit
                     };
                     bossTune = new SectionBossTuning
                     {
-                        maxHp = 315f,
-                        moveSpeed = 2.95f,
-                        slamDamage = 36f
+                        maxHp = 820f,
+                        moveSpeed = 3.15f,
+                        slamDamage = 40f
                     };
                     break;
             }
@@ -404,7 +404,8 @@ namespace BrushSpirit
             var level = levelRoot.AddComponent<LevelController>();
             level.waves = wave;
             var bossSpawn = new GameObject("BossSpawn").transform;
-            bossSpawn.position = new Vector3(bossSpawnX, -2.95f, 0f);
+            // Y 偏高一点，配合 BossInkTree/BossDemonKing.Start 内的 EnsureGroundFooting 自动落地，避免穿地
+            bossSpawn.position = new Vector3(bossSpawnX, -1.6f, 0f);
             level.bossSpawnPoint = bossSpawn;
             level.nextSceneAfterWaves = hasBoss ? "" : nextScene;
             level.sectionClearTitle = clearTitle;
@@ -1175,7 +1176,7 @@ namespace BrushSpirit
             var follow = cam.gameObject.AddComponent<CameraFollowPlayer2D>();
             follow.target = player.transform;
             follow.focusOffset = new Vector2(2.5f, 1.45f);
-            follow.smoothTime = 0.15f;
+            follow.smoothTime = 0.06f;
             follow.minX = -halfArena + halfW - margin;
             follow.maxX = halfArena - halfW + margin;
             follow.minY = minY;
@@ -1494,15 +1495,20 @@ namespace BrushSpirit
                 sr.color = Color.white;
                 p.transform.localScale = Vector3.one;
             }
-            if (_instance != null && _instance.playerController != null)
+            if (_instance != null && (_instance.bareController != null || _instance.playerController != null))
             {
                 var anim = p.AddComponent<Animator>();
-                anim.runtimeAnimatorController = _instance.playerController;
+                // 默认形态为赤手空拳；剑 / 枪需通过拾取解锁。bareController 缺失时回退到剑控制器，
+                // 避免出现没有 Animator Controller 的空状态。
+                anim.runtimeAnimatorController = _instance.bareController != null
+                    ? _instance.bareController
+                    : _instance.playerController;
                 anim.applyRootMotion = false;
             }
             var rb = p.AddComponent<Rigidbody2D>();
             rb.constraints = RigidbodyConstraints2D.FreezeRotation;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            rb.interpolation = RigidbodyInterpolation2D.Interpolate;
             var box = p.AddComponent<BoxCollider2D>();
             if (_instance != null && _instance.playerSprite != null)
             {
@@ -1638,7 +1644,8 @@ namespace BrushSpirit
             sr.sprite = white;
             sr.color = new Color(0.11f, 0.11f, 0.13f);
             sr.sortingOrder = 8;
-            root.transform.localScale = new Vector3(2.15f, 2.55f, 1f);
+            // 调大体型：~30%，呈现更具压迫感的 Boss。BossInkTree.Start 会自动落地，避免穿地。
+            root.transform.localScale = new Vector3(2.85f, 3.30f, 1f);
             if (_instance != null && _instance.bossSprite != null)
             {
                 sr.sprite = _instance.bossSprite;
@@ -1654,12 +1661,13 @@ namespace BrushSpirit
             hbGo.transform.SetParent(root.transform, false);
             var c = hbGo.AddComponent<CircleCollider2D>();
             c.isTrigger = true;
-            c.radius = 0.5f;
+            // 受击半径相对缩小以适配更大躯干（lossyScale 已放大）
+            c.radius = 0.42f;
             var hb = hbGo.AddComponent<Hurtbox>();
             hb.Configure(boss);
             var bc = root.AddComponent<ClampToWorldBounds2D>();
-            bc.halfWidthPad = 1.15f;
-            bc.halfHeightPad = 1.35f;
+            bc.halfWidthPad = 1.4f;
+            bc.halfHeightPad = 1.65f;
             bc.skipClampWhenOutsideViewport = false;
             bc.clampVertical = false;
             return root;
@@ -1707,7 +1715,7 @@ namespace BrushSpirit
             hud.levelText = CreateHudText(go.transform, "LevelText", "Lv.1", 22, new Vector2(0.05f, 0.86f), new Vector2(160f, 36f),
                 TextAnchor.UpperLeft);
 
-            hud.jAttackText = CreateHudText(go.transform, "JHint", "普攻 J：无冷却（三段循环）", 17, new Vector2(0.05f, 0.805f), new Vector2(480f, 28f),
+            hud.jAttackText = CreateHudText(go.transform, "JHint", "拳·普攻 J：无冷却（三段循环）  [1 拳  2 剑✗  3 枪✗]", 17, new Vector2(0.05f, 0.805f), new Vector2(620f, 28f),
                 TextAnchor.UpperLeft);
 
             hud.kCooldownText = CreateHudText(go.transform, "KCD", "墨爆 K: 就绪", 18, new Vector2(0.05f, 0.745f), new Vector2(420f, 32f),

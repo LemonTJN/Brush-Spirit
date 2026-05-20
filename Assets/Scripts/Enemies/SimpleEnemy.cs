@@ -230,12 +230,8 @@ namespace BrushSpirit.Enemies
             var stats = attacker != null ? attacker.GetComponent<PlayerStats>() : null;
             stats?.AddXp(xpReward);
 
-            if (Random.value < whiteDropChance)
-            {
-                var drop = Random.value < 0.5f ? whiteDropA : whiteDropB;
-                if (drop != null)
-                    Pickup.SpawnAt(transform.position + Vector3.up * 0.4f, drop);
-            }
+            // 不再随机掉落白方块装备占位（占位贴图视觉不佳）；改由 WeaponDropDirector 统一掉落「剑 / 枪」形态拾取物。
+            WeaponDropDirector.OnEnemyKilled(transform.position);
 
             Destroy(gameObject);
         }

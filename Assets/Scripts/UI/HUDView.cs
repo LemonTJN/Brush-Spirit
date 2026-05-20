@@ -75,7 +75,7 @@ namespace BrushSpirit.UI
         void Update()
         {
             if (jAttackText != null)
-                jAttackText.text = "普攻 J：无冷却（三段循环）";
+                jAttackText.text = BuildJAttackLine();
             if (_combat == null) return;
             if (kCooldownText != null)
                 kCooldownText.text = _combat.KCdRemaining > 0f ? $"墨爆 K: {_combat.KCdRemaining:0.0}s" : "墨爆 K: 就绪";
@@ -83,6 +83,42 @@ namespace BrushSpirit.UI
                 lCooldownText.text = _combat.LCdRemaining > 0f ? $"三连 L: {_combat.LCdRemaining:0.0}s" : "三连 L: 就绪";
             if (dashCooldownText != null && _move != null)
                 dashCooldownText.text = _move.DashCdRemaining > 0f ? $"冲刺 双击←/→: {_move.DashCdRemaining:0.0}s" : "冲刺 双击←/→: 就绪";
+        }
+
+        string BuildJAttackLine()
+        {
+            string formTag;
+            string action;
+            string mulTag;
+            if (_combat == null)
+            {
+                formTag = "拳";
+                action = "无冷却（三段循环）";
+                mulTag = "";
+            }
+            else
+            {
+                switch (_combat.CurrentWeapon)
+                {
+                    case PlayerCombat.WeaponMode.Pistol:
+                        formTag = "枪";
+                        action = "J 射击";
+                        break;
+                    case PlayerCombat.WeaponMode.Sword:
+                        formTag = "剑";
+                        action = "无冷却（三段循环）";
+                        break;
+                    default:
+                        formTag = "拳";
+                        action = "无冷却（三段循环）";
+                        break;
+                }
+                mulTag = $" ×{_combat.GetWeaponBaseMul():0.00}";
+            }
+
+            string swordTag = PlayerCombat.HasSword ? "2 剑✓" : "2 剑✗";
+            string pistolTag = PlayerCombat.HasPistol ? "3 枪✓" : "3 枪✗";
+            return $"{formTag}·普攻 J{mulTag}：{action}  [1 拳  {swordTag}  {pistolTag}]";
         }
     }
 }

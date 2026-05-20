@@ -1,3 +1,5 @@
+using BrushSpirit.Items;
+using BrushSpirit.Player;
 using UnityEngine;
 
 namespace BrushSpirit.Core
@@ -21,9 +23,14 @@ namespace BrushSpirit.Core
 
         public static void ClearRun()
         {
-            if (Instance == null) return;
-            Destroy(Instance.gameObject);
-            Instance = null;
+            // 即便 Instance 已为 null（首次进游戏 / 上次清理过），仍需要重置全局解锁与掉落计数
+            if (Instance != null)
+            {
+                Destroy(Instance.gameObject);
+                Instance = null;
+            }
+            PlayerCombat.ResetUnlocks();
+            WeaponDropDirector.Reset();
         }
     }
 }
