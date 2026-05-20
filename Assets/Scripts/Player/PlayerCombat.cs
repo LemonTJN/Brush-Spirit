@@ -93,6 +93,44 @@ namespace BrushSpirit.Player
         bool _initialVisualApplied;
         float _lockedToastCd;
 
+        [Header("枪 终极弹 L（墨痕巨弹 / Ink Slug）")]
+        [Tooltip("主弹相对 pistolDamage×pistolBulletMul 的额外倍率。3.5 让单体伤害与剑 L 三连 burst 持平。")]
+        public float pistolUltMul = 3.5f;
+        [Tooltip("巨弹的视觉/碰撞放大倍数")]
+        public float pistolUltScaleMul = 3.0f;
+        [Tooltip("最多穿透敌人数（不算 AOE 命中）")]
+        public int pistolUltPierces = 3;
+        [Tooltip("命中点 AOE 爆开的半径")]
+        public float pistolUltAoeRadius = 1.5f;
+        [Tooltip("AOE 伤害是主弹伤害的多少倍")]
+        public float pistolUltAoeMul = 0.6f;
+        [Tooltip("巨弹飞行速度（比普通子弹慢，呈现「沉重感」）")]
+        public float pistolUltSpeed = 12f;
+        public float pistolUltLife = 1.6f;
+        public float pistolUltKnockback = 14f;
+
+        [Header("枪 L 蓄力（参考 DMC5 Nero 的 Charge Shot）")]
+        [Tooltip("低于此时长释放 → 取消蓄力，不消耗 CD。给玩家「手滑」的容错。")]
+        public float chargeMinTime = 0.18f;
+        public float chargeLv2Time = 0.55f;
+        public float chargeLv3Time = 1.05f;
+        [Tooltip("达到此时长自动释放，避免玩家死按不松")]
+        public float chargeMaxTime = 1.35f;
+        [Tooltip("各级伤害倍率（Lv1/2/3），在 pistolUltMul 基础上再叠加")]
+        public float[] chargeDamageMuls   = { 1.00f, 1.45f, 1.95f };
+        [Tooltip("各级穿透数额外加成")]
+        public int[]   chargePiercesBonus = { 0,     1,     2     };
+        [Tooltip("各级巨弹尺寸倍率")]
+        public float[] chargeScaleMuls    = { 1.00f, 1.18f, 1.40f };
+        [Tooltip("各级 AOE 范围倍率")]
+        public float[] chargeAoeRadiusMuls= { 1.00f, 1.22f, 1.50f };
+
+        bool _charging;
+        float _chargeT;
+        int _lastChargeLv;
+        GameObject _chargeMuzzleFx;
+        SpriteRenderer _chargeMuzzleSr;
+
         [Header("手枪")]
         public float pistolFireCooldown = 0.35f;
         // 子弹基础值：从 10 提到 16，跟玩家 baseAttack 10→14 的同步上调；再乘 pistolBulletMul = 1.20。
@@ -148,6 +186,14 @@ namespace BrushSpirit.Player
             if (_pistolCdRemaining > 0f) _pistolCdRemaining -= Time.deltaTime;
             if (_jCdRemaining > 0f) _jCdRemaining -= Time.deltaTime;
             if (_lockedToastCd > 0f) _lockedToastCd -= Time.deltaTime;
+
+            // 蓄力中：吃掉所有其他输入，只关心继续蓄 or 释放
+            if (_charging)
+            {
+                TickCharge(Time.deltaTime);
+                if (Input.GetKeyUp(KeyCode.L)) ReleaseCharge();
+                return;
+            }
             if (_comboGraceT > 0f)
             {
                 _comboGraceT -= Time.deltaTime;
@@ -197,7 +243,12 @@ namespace BrushSpirit.Player
             }
 
             if (Input.GetKeyDown(KeyCode.L) && LCdRemaining <= 0f)
-                StartCoroutine(DoTripleSlash());
+            {
+                if (CurrentWeapon == WeaponMode.Pistol)
+                    StartCharge();
+                else
+                    StartCoroutine(DoTripleSlash());
+            }
         }
 
         public void SetWeapon(WeaponMode mode)
@@ -213,6 +264,7 @@ namespace BrushSpirit.Player
                 return;
             }
 
+            if (_charging) CancelCharge(); // 切武器立即打断蓄力，避免拿剑后还在攒能量球
             CurrentWeapon = mode;
             ApplyWeaponVisual(mode);
         }
@@ -261,6 +313,211 @@ namespace BrushSpirit.Player
             yield return new WaitForSeconds(0.2f);
             _busy = false;
         }
+
+        // ───────────────── 枪 L 蓄力系统 ─────────────────
+
+        void StartCharge()
+        {
+            _charging = true;
+            _chargeT = 0f;
+            _lastChargeLv = 0;
+            EnsureMuzzleFx();
+            // 注意：CD 在 ReleaseCharge 成功发射时才设置；这样手滑取消不消耗 8s 大招
+        }
+
+        void TickCharge(float dt)
+        {
+            _chargeT += dt;
+            int lv = GetChargeLevel(_chargeT);
+
+            // 跨等级瞬间：能量球闪一下 + 屏幕轻震，体现「咚！咚！」节奏感
+            if (lv > _lastChargeLv && lv > 0)
+            {
+                _lastChargeLv = lv;
+                BrushSpirit.Core.HitFeedback.Light();
+            }
+
+            // 持续 shake：amp 随等级阶梯式提升，Lv3 叠正弦"颤"，做出「过载」感
+            //   Lv0 — 起势微震   Lv1 ≈ Medium   Lv2 ≈ Heavy   Lv3 ≈ Huge + 颤动
+            // 用 SetContinuousShake 避免被 max-merge 卡住，sin 部分才能真正显现
+            if (BrushSpirit.Core.CameraFollowPlayer2D.Active != null)
+            {
+                float amp;
+                if (lv >= 3)
+                    amp = 0.105f + 0.045f * Mathf.Abs(Mathf.Sin(Time.time * 26f));
+                else if (lv == 2)
+                    amp = 0.075f;
+                else if (lv == 1)
+                    amp = 0.045f;
+                else
+                    amp = 0.020f;
+                BrushSpirit.Core.CameraFollowPlayer2D.Active.SetContinuousShake(amp);
+            }
+
+            UpdateMuzzleFx(lv);
+
+            if (_chargeT >= chargeMaxTime) ReleaseCharge();
+        }
+
+        void ReleaseCharge()
+        {
+            if (!_charging) return;
+            int lv = GetChargeLevel(_chargeT);
+            _charging = false;
+            _chargeT = 0f;
+            DestroyMuzzleFx();
+
+            if (lv <= 0) return; // 没蓄够就松开 → 取消，不消耗 CD
+            StartCoroutine(DoPistolUltimateAtLevel(lv));
+        }
+
+        void CancelCharge()
+        {
+            _charging = false;
+            _chargeT = 0f;
+            _lastChargeLv = 0;
+            DestroyMuzzleFx();
+        }
+
+        int GetChargeLevel(float t)
+        {
+            if (t >= chargeLv3Time) return 3;
+            if (t >= chargeLv2Time) return 2;
+            if (t >= chargeMinTime) return 1;
+            return 0;
+        }
+
+        /// <summary>
+        /// 蓄力释放：朝面朝方向打出对应等级的墨痕巨弹。
+        /// Lv1 = 基础 ult（与剑 L burst 持平）；Lv3 = 近乎翻倍 + 穿透 +2 + AOE ×1.5。
+        /// </summary>
+        IEnumerator DoPistolUltimateAtLevel(int lv)
+        {
+            _busy = true;
+            LCdRemaining = lCooldown;
+
+            int idx = Mathf.Clamp(lv - 1, 0, 2);
+            float dmgScale = chargeDamageMuls[idx];
+            int piercesBonus = chargePiercesBonus[idx];
+            float scaleByLv = chargeScaleMuls[idx];
+            float aoeByLv = chargeAoeRadiusMuls[idx];
+
+            // 蓄力已经吃掉了大部分前摇，发射几乎瞬发
+            yield return new WaitForSeconds(0.06f);
+            if (_anim != null) _anim.SetTrigger(kAttack);
+
+            var gb = BrushSpirit.GameRuntimeBootstrap.Instance;
+            if (gb != null && gb.bulletPrefab != null)
+            {
+                float facingDir = (_move != null && _move.IsFacingRight) ? 1f : -1f;
+                Vector2 muzzle = BodyCenter + new Vector2(facingDir * pistolMuzzleOffsetX, pistolMuzzleOffsetY);
+                var inst = Object.Instantiate(gb.bulletPrefab, muzzle, Quaternion.identity);
+                inst.transform.localScale = Vector3.one * (pistolUltScaleMul * scaleByLv);
+
+                var b = inst.GetComponent<Bullet>();
+                if (b == null) b = inst.AddComponent<Bullet>();
+                b.maxPierces = pistolUltPierces + piercesBonus;
+                b.aoeRadiusOnHit = pistolUltAoeRadius * aoeByLv;
+                b.aoeDamageMul = pistolUltAoeMul;
+                b.hurtboxMaskForAoe = hurtboxMask;
+                b.speed = pistolUltSpeed;
+                b.lifetime = pistolUltLife;
+                b.knockbackImpulse = pistolUltKnockback;
+                b.hitFeedbackLevel = 2;
+                b.ignoreTerrain = true; // 巨弹穿山贯石，不被地形吃掉
+
+                // 蓄力等级越高，颜色越亮：暗紫 → 紫粉 → 暖金
+                var sr = inst.GetComponent<SpriteRenderer>();
+                if (sr != null)
+                {
+                    if (lv >= 3)      sr.color = new Color(1.00f, 0.85f, 0.35f);
+                    else if (lv == 2) sr.color = new Color(0.85f, 0.45f, 0.95f);
+                    else              sr.color = new Color(0.22f, 0.10f, 0.32f);
+                }
+
+                float dmg = pistolDamage * pistolBulletMul * pistolUltMul * dmgScale;
+                b.Launch(new Vector2(facingDir, 0f), gameObject, dmg);
+
+                // 发射反馈分级：Lv1=Medium，Lv2=Heavy，Lv3=Huge
+                if (lv >= 3)      BrushSpirit.Core.HitFeedback.Huge();
+                else if (lv == 2) BrushSpirit.Core.HitFeedback.Heavy();
+                else              BrushSpirit.Core.HitFeedback.Medium();
+            }
+
+            yield return new WaitForSeconds(0.20f);
+            _busy = false;
+        }
+
+        // 枪口能量球：程序化贴图，跟随面朝方向，蓄力时尺寸/颜色随等级变化
+        void EnsureMuzzleFx()
+        {
+            if (_chargeMuzzleFx != null) return;
+            _chargeMuzzleFx = new GameObject("PistolChargeOrb");
+            _chargeMuzzleFx.transform.SetParent(transform, false);
+            _chargeMuzzleFx.transform.localPosition = new Vector3(pistolMuzzleOffsetX, pistolMuzzleOffsetY, 0f);
+            _chargeMuzzleSr = _chargeMuzzleFx.AddComponent<SpriteRenderer>();
+            _chargeMuzzleSr.sprite = GetChargeOrbSprite();
+            _chargeMuzzleSr.sortingOrder = 70;
+            _chargeMuzzleFx.transform.localScale = Vector3.one * 0.1f;
+        }
+
+        void UpdateMuzzleFx(int lv)
+        {
+            if (_chargeMuzzleFx == null || _chargeMuzzleSr == null) return;
+            float facingDir = (_move != null && _move.IsFacingRight) ? 1f : -1f;
+            _chargeMuzzleFx.transform.localPosition = new Vector3(facingDir * pistolMuzzleOffsetX, pistolMuzzleOffsetY, 0f);
+
+            float t = Mathf.Clamp01(_chargeT / chargeLv3Time);
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 18f);
+            float scale = Mathf.Lerp(0.18f, 0.62f, t) * (1f + 0.10f * pulse);
+            _chargeMuzzleFx.transform.localScale = Vector3.one * scale;
+
+            Color baseCol;
+            if (lv >= 3)      baseCol = new Color(1.00f, 0.92f, 0.35f); // 暖金
+            else if (lv == 2) baseCol = new Color(0.95f, 0.50f, 1.00f); // 紫粉
+            else if (lv == 1) baseCol = new Color(0.55f, 0.30f, 0.92f); // 暗紫
+            else              baseCol = new Color(0.30f, 0.18f, 0.55f); // 未到 Lv1，更暗
+            float alpha = Mathf.Lerp(0.55f, 1.0f, t) * (0.85f + 0.18f * pulse);
+            _chargeMuzzleSr.color = new Color(baseCol.r, baseCol.g, baseCol.b, alpha);
+        }
+
+        void DestroyMuzzleFx()
+        {
+            if (_chargeMuzzleFx != null) Destroy(_chargeMuzzleFx);
+            _chargeMuzzleFx = null;
+            _chargeMuzzleSr = null;
+        }
+
+        // 程序化生成一颗带软光晕的能量球（无外部美术依赖）
+        static Sprite s_chargeOrbSprite;
+        static Sprite GetChargeOrbSprite()
+        {
+            if (s_chargeOrbSprite != null) return s_chargeOrbSprite;
+            const int size = 96;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            var pixels = new Color[size * size];
+            Vector2 center = new Vector2(size * 0.5f, size * 0.5f);
+            float maxR = size * 0.5f;
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x, y), center);
+                float u = Mathf.Clamp01(d / maxR);
+                // 软光晕：中心实白，边缘 Gaussian 衰减
+                float a = Mathf.Pow(1f - u, 2.2f);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, a);
+            }
+            tex.SetPixels(pixels);
+            tex.Apply();
+            s_chargeOrbSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+            return s_chargeOrbSprite;
+        }
+
+        // ───────────────────────────────────────────────────
 
         IEnumerator DoTripleSlash()
         {
@@ -396,7 +653,7 @@ namespace BrushSpirit.Player
             Object.Destroy(go, life);
         }
 
-        static void SpawnAttackCircleFx(Vector2 center, float radius)
+        public static void SpawnAttackCircleFx(Vector2 center, float radius)
         {
             var gb = BrushSpirit.GameRuntimeBootstrap.Instance;
 

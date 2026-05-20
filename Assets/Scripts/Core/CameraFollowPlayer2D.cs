@@ -24,6 +24,10 @@ namespace BrushSpirit.Core
         float _shakeRemain;
         float _shakeTotal;
 
+        // ── 持续震屏（外部需要每帧调 SetContinuousShake；可上可下）──
+        float _continuousAmp;
+        int _continuousLastFrame = -1;
+
         public static CameraFollowPlayer2D Active { get; private set; }
 
         void OnEnable() { Active = this; }
@@ -41,6 +45,16 @@ namespace BrushSpirit.Core
             if (amplitude > _shakeAmp) _shakeAmp = amplitude;
             if (duration > _shakeRemain) _shakeRemain = duration;
             _shakeTotal = Mathf.Max(_shakeTotal, duration);
+        }
+
+        /// <summary>
+        /// 持续震屏（蓄力 / 充能等场景）。需要每帧调用，停止调用 1 帧后自动归零。
+        /// 与脉冲式 Shake() 不冲突，最终 amp = max(continuous, decayingPulse)。
+        /// </summary>
+        public void SetContinuousShake(float amplitude)
+        {
+            _continuousAmp = Mathf.Max(0f, amplitude);
+            _continuousLastFrame = Time.frameCount;
         }
 
         void LateUpdate()
@@ -61,19 +75,28 @@ namespace BrushSpirit.Core
             p.z = transform.position.z;
 
             // 震屏：用未缩放时间（hit-stop 期间相机仍然抖）+ 随时间衰减的高频偏移
+            // 脉冲部分（hit-stop 命中等）
+            float pulseAmp = 0f;
             if (_shakeRemain > 0f && _shakeTotal > 0f)
             {
                 _shakeRemain -= Time.unscaledDeltaTime;
                 float k = Mathf.Clamp01(_shakeRemain / _shakeTotal); // 1→0 衰减
-                float amp = _shakeAmp * k * k; // 二次衰减，尾巴更短
+                pulseAmp = _shakeAmp * k * k; // 二次衰减，尾巴更短
+                if (_shakeRemain <= 0f) { _shakeAmp = 0f; _shakeTotal = 0f; }
+            }
+
+            // 持续部分：上一帧没调用 → 自动归零
+            if (_continuousLastFrame < Time.frameCount - 1) _continuousAmp = 0f;
+
+            float amp = Mathf.Max(pulseAmp, _continuousAmp);
+            if (amp > 0f)
+            {
                 // 用噪声而不是 Random，避免每帧完全独立——更接近真实手感
                 float t = Time.unscaledTime * 38f;
                 float ox = (Mathf.PerlinNoise(t, 0.13f) - 0.5f) * 2f * amp;
                 float oy = (Mathf.PerlinNoise(0.71f, t) - 0.5f) * 2f * amp;
                 p.x += ox;
                 p.y += oy;
-
-                if (_shakeRemain <= 0f) { _shakeAmp = 0f; _shakeTotal = 0f; }
             }
 
             transform.position = p;
