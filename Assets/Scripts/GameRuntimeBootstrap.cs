@@ -79,7 +79,7 @@ namespace BrushSpirit
             SectionEnemyTuning enemyTune = DefaultEnemyTuning();
             SectionBossTuning bossTune = new SectionBossTuning
             {
-                maxHp = 520f,
+                maxHp = 760f,
                 moveSpeed = 2.8f,
                 slamDamage = 30f
             };
@@ -149,7 +149,7 @@ namespace BrushSpirit
                     };
                     bossTune = new SectionBossTuning
                     {
-                        maxHp = 620f,
+                        maxHp = 880f,
                         moveSpeed = 3.0f,
                         slamDamage = 34f
                     };
@@ -221,7 +221,7 @@ namespace BrushSpirit
                     };
                     bossTune = new SectionBossTuning
                     {
-                        maxHp = 620f,
+                        maxHp = 880f,
                         moveSpeed = 3.0f,
                         slamDamage = 34f
                     };
@@ -316,7 +316,7 @@ namespace BrushSpirit
                     };
                     bossTune = new SectionBossTuning
                     {
-                        maxHp = 820f,
+                        maxHp = 1180f,
                         moveSpeed = 3.15f,
                         slamDamage = 40f
                     };

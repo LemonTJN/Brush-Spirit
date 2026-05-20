@@ -23,9 +23,9 @@ namespace BrushSpirit.Items
         public static int SwordPityKills = 8;
 
         // ---- 枪（后期武器）----
-        public static int PistolStartKills = 10;
-        public static float PistolDropChance = 0.22f;
-        public static int PistolPityKills = 18;
+        public static int PistolStartKills = 6;
+        public static float PistolDropChance = 0.30f;
+        public static int PistolPityKills = 12;
 
         static int s_kills;
         static bool s_swordDropped;

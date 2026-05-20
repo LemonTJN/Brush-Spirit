@@ -1,3 +1,4 @@
+using System.Collections;
 using BrushSpirit.Core;
 using BrushSpirit.Items;
 using BrushSpirit.Player;
@@ -20,8 +21,8 @@ namespace BrushSpirit.Enemies
         public EquipmentData whiteDropB;
         public Transform player;
 
-        [Tooltip("攻击前摇（红圈预警持续时长，之后才真正扣血）")]
-        public float attackWindupTime = 0.28f;
+        [Tooltip("攻击前摇（变红膨胀的持续时长，结束后才出招扣血）")]
+        public float attackWindupTime = 0.60f;
 
         float _hp;
         float _cd;
@@ -117,13 +118,20 @@ namespace BrushSpirit.Enemies
 
             if (player == null) ResolvePlayerTransform();
             if (player == null) return;
+
+            // 一旦起手就必须完整完成攻击：不再因为玩家走出范围而取消
+            if (_attackPending)
+            {
+                TickInRangeAttack(dt);
+                return;
+            }
+
             Vector2 delta = (Vector2)(player.position - transform.position);
             float dist = delta.magnitude;
             if (dist > attackRange)
             {
                 float dx = delta.x;
                 transform.position += new Vector3(Mathf.Sign(dx) * moveSpeed * dt, 0f, 0f);
-                _attackPending = false;
                 _cd = Mathf.Max(0f, _cd - dt);
             }
             else
@@ -143,6 +151,16 @@ namespace BrushSpirit.Enemies
         void TickPlatformAi(float dt)
         {
             Vector3 p = transform.position;
+
+            // 攻击起手期间不移动、不巡逻，只推进 windup
+            if (_attackPending)
+            {
+                TickInRangeAttack(dt);
+                p.y = _lockedY;
+                transform.position = p;
+                return;
+            }
+
             bool aggro = PlayerOnThisPlatform();
             if (aggro)
             {
@@ -152,7 +170,6 @@ namespace BrushSpirit.Enemies
                 {
                     float dx = delta.x;
                     p.x += Mathf.Sign(dx) * moveSpeed * dt;
-                    _attackPending = false;
                 }
                 else
                 {
@@ -161,7 +178,6 @@ namespace BrushSpirit.Enemies
             }
             else
             {
-                _attackPending = false;
                 _cd = Mathf.Max(0f, _cd - dt);
                 p.x += _patrolDir * moveSpeed * dt;
                 if (p.x >= _platformMaxX - PatrolEdgeSlack)
@@ -198,6 +214,7 @@ namespace BrushSpirit.Enemies
                     _attackPending = false;
                     TryHitPlayer();
                     _cd = attackCooldown;
+                    StartCoroutine(StrikeLungeAndClaw());
                 }
             }
             else
@@ -207,22 +224,111 @@ namespace BrushSpirit.Enemies
                 {
                     _attackPending = true;
                     _windupT = attackWindupTime;
-                    float dir = player != null ? Mathf.Sign(player.position.x - transform.position.x) : 1f;
-                    GameRuntimeBootstrap.ShowAttackSlashFx(
-                        transform.position,
-                        dir,
-                        attackRange,
-                        attackWindupTime,
-                        new Color(0.88f, 0.15f, 0.10f, 0.55f));
+                    // 起手时锁定挥击方向：之后玩家绕到背后也按这里的方向打
+                    _attackDirX = player != null
+                        ? Mathf.Sign(player.position.x - transform.position.x)
+                        : 1f;
+                    if (Mathf.Approximately(_attackDirX, 0f)) _attackDirX = 1f;
+                    StartCoroutine(WindupTellRoutine());
                 }
             }
         }
 
+        /// <summary>
+        /// 出招瞬间结算：只在「攻击锁定方向那一侧」+「挥击半径内」才扣血。
+        ///   - 玩家绕到背后 → 不掉血（怪物空挥）
+        ///   - 玩家在身前但跑出范围 → 不掉血
+        /// 这就是主流动作游戏的「单向 hitbox」做法，参考 Dark Souls / Hollow Knight 的小怪挥击判定。
+        /// </summary>
         void TryHitPlayer()
         {
             var stats = PlayerStats.Active != null ? PlayerStats.Active : player != null ? player.GetComponent<PlayerStats>() : null;
             if (stats == null) stats = Object.FindObjectOfType<PlayerStats>();
-            stats?.TakeDamage(attackDamage, gameObject);
+            if (stats == null) return;
+
+            Vector2 toPlayer = (Vector2)stats.transform.position - (Vector2)transform.position;
+
+            // 单向判定：玩家必须在攻击锁定方向那一侧（允许 0.18 单位的「贴脸容差」，避免和怪重叠时判定抽搐）
+            float forwardOffset = toPlayer.x * _attackDirX;
+            if (forwardOffset < -0.18f) return;
+
+            // 距离限制：lunge 前冲 0.45 单位，再加点宽容
+            float hitReach = attackRange + 0.55f;
+            if (toPlayer.magnitude > hitReach) return;
+
+            stats.TakeDamage(attackDamage, gameObject);
+        }
+
+        // ── 攻击前摇视觉：身体逐渐变红 + 放大，无需动画 ──
+        IEnumerator WindupTellRoutine()
+        {
+            if (_sr == null) _sr = GetComponent<SpriteRenderer>();
+            Color baseCol = _idleTint;
+            Vector3 baseScale = transform.localScale;
+            Vector3 maxScale = baseScale * 1.18f;
+            Color targetTint = new Color(1f, 0.30f, 0.20f);
+            float t = 0f;
+            while (_attackPending && t < attackWindupTime)
+            {
+                t += Time.deltaTime;
+                float u = Mathf.Clamp01(t / attackWindupTime);
+                // 越接近出招颜色越红、体型越涨；u 平方让前段缓慢、后段急促
+                float k = u * u;
+                if (_sr != null) _sr.color = Color.Lerp(baseCol, targetTint, k * 0.85f);
+                transform.localScale = Vector3.Lerp(baseScale, maxScale, k);
+                yield return null;
+            }
+            // 出招或被打断后立即恢复
+            if (_sr != null) _sr.color = baseCol;
+            transform.localScale = baseScale;
+        }
+
+        // ── 出招视觉：用起手时锁定的方向突进 + 爪痕扇形 ──
+        IEnumerator StrikeLungeAndClaw()
+        {
+            float dir = _attackDirX;
+            SpawnClawArc(dir);
+
+            // Lunge：先快速前冲 0.45 单位，再回弹
+            Vector3 origin = transform.position;
+            Vector3 forwardTarget = origin + new Vector3(dir * 0.45f, 0f, 0f);
+            float t = 0f, dur = 0.08f;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                transform.position = Vector3.Lerp(origin, forwardTarget, t / dur);
+                yield return null;
+            }
+            t = 0f; dur = 0.16f;
+            Vector3 lungePeak = transform.position;
+            while (t < dur)
+            {
+                t += Time.deltaTime;
+                transform.position = Vector3.Lerp(lungePeak, origin, t / dur);
+                yield return null;
+            }
+            transform.position = origin;
+        }
+
+        /// <summary>在攻击方向画三条扇形细爪痕，替代红色长方形 telegraph。</summary>
+        void SpawnClawArc(float dir)
+        {
+            Vector3 center = transform.position + new Vector3(dir * attackRange * 0.55f, 0.05f, 0f);
+            float[] angles = { -22f, 0f, 22f };
+            foreach (float a in angles)
+            {
+                var go = new GameObject("EnemyClawMark");
+                go.transform.position = center;
+                float baseRotZ = dir < 0f ? 180f : 0f;
+                go.transform.rotation = Quaternion.Euler(0f, 0f, baseRotZ + a);
+                go.transform.localScale = new Vector3(attackRange * 0.7f, 0.07f, 1f);
+                var sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = GameRuntimeBootstrap.CreatePlaceholderSprite();
+                // 爪痕：白灰主体 + 微透明，附在出招位置一闪即逝
+                sr.color = new Color(0.92f, 0.92f, 0.96f, 0.88f);
+                sr.sortingOrder = 56;
+                Object.Destroy(go, 0.16f);
+            }
         }
 
         void Die(GameObject attacker)
@@ -238,6 +344,9 @@ namespace BrushSpirit.Enemies
 
         SpriteRenderer _sr;
         float _flashT;
+
+        // 锁定起手方向，避免玩家中途绕到背后导致 lunge 朝反方向
+        float _attackDirX = 1f;
 
         void Flash()
         {

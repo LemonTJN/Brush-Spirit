@@ -41,7 +41,7 @@ namespace BrushSpirit.Enemies
         [Header("墨柱地刺 GroundPillars")]
         public int pillarCount = 3;
         public float pillarSpacing = 2.4f;
-        public float pillarWindupTime = 0.55f;
+        public float pillarWindupTime = 0.8f;
         public float pillarStrikeDuration = 0.45f;
         public float pillarDamage = 24f;
         public float pillarHalfWidth = 0.55f;
@@ -50,6 +50,13 @@ namespace BrushSpirit.Enemies
         [Header("阶段切换无敌（红膜）")]
         public float phase1InvulnTime = 1.0f;
         public float phase2InvulnTime = 1.4f;
+
+        [Header("贴脸惩罚（Contact Damage，参考 Hollow Knight）")]
+        [Tooltip("玩家距 boss 中心小于此值视为贴脸")]
+        public float contactRange = 1.20f;
+        [Tooltip("贴脸时每秒造成的伤害（每 0.5s 结算一次）；魔王比林木更狠")]
+        public float contactDamagePerSec = 20f;
+        float _contactTickT;
 
         [Header("墨涌震波 SlamShockwave")]
         public float slamWindupTime = 0.40f;
@@ -88,6 +95,8 @@ namespace BrushSpirit.Enemies
         float _baseY;
         float _invulnT;
         float[] _pillarTargetXs;
+        float _curtainCenterX;
+        bool _curtainCenterValid;
 
         SpriteRenderer _sr;
         WorldHealthBar _bar;
@@ -185,8 +194,7 @@ namespace BrushSpirit.Enemies
         {
             var stats = attacker != null ? attacker.GetComponent<PlayerStats>() : null;
             stats?.AddXp(xpReward);
-            if (colorGearDrop != null)
-                Pickup.SpawnAt(transform.position + Vector3.up * 0.9f, colorGearDrop);
+            // 取消 boss 装备掉落
             WeaponDropDirector.OnEnemyKilled(transform.position);
             OnDefeated?.Invoke();
             Destroy(gameObject);
@@ -222,6 +230,8 @@ namespace BrushSpirit.Enemies
 
             _t += dt;
 
+            TickContactDamage(dt);
+
             switch (_state)
             {
                 case State.Chase:   TickChase(dt);   break;
@@ -229,6 +239,27 @@ namespace BrushSpirit.Enemies
                 case State.Attack:  TickAttack(dt);  break;
                 case State.Recover: TickRecover();   break;
             }
+        }
+
+        /// <summary>
+        /// 贴脸惩罚：玩家距 boss 在 contactRange 内时持续掉血（每 0.5s 一次）。
+        /// 玩家 dash 期间无敌（PlayerStats 的 i-frames），所以「dash 进 → 砍 → dash 出」依然成立。
+        /// </summary>
+        void TickContactDamage(float dt)
+        {
+            if (player == null) return;
+            if (contactDamagePerSec <= 0f) return;
+            float dist = Vector2.Distance(player.position, transform.position);
+            if (dist > contactRange) { _contactTickT = 0f; return; }
+
+            _contactTickT -= dt;
+            if (_contactTickT > 0f) return;
+            _contactTickT = 0.5f;
+
+            var stats = PlayerStats.Active != null
+                ? PlayerStats.Active
+                : player.GetComponent<PlayerStats>();
+            stats?.TakeDamage(contactDamagePerSec * 0.5f, gameObject);
         }
 
         // ── 追击阶段：决定下一个攻击 ──
@@ -350,7 +381,9 @@ namespace BrushSpirit.Enemies
                 case AttackKind.BulletCurtain:
                     if (player != null)
                     {
-                        Vector3 pos = new Vector3(player.position.x, transform.position.y + 2.6f, 0f);
+                        _curtainCenterX = player.position.x;
+                        _curtainCenterValid = true;
+                        Vector3 pos = new Vector3(_curtainCenterX, transform.position.y + 2.6f, 0f);
                         float halfSpan = curtainSpacing * (curtainCount - 1) * 0.5f + 0.6f;
                         GameRuntimeBootstrap.ShowAttackSlashFx(
                             pos, 1f, halfSpan,
@@ -506,11 +539,14 @@ namespace BrushSpirit.Enemies
             bolt.isHoming = false;
         }
 
-        // ── 墨幕坠落 ──
+        // ── 墨幕坠落：用前摇时锁定的中心 X 生成（不再跟随玩家移动） ──
         void ExecuteBulletCurtain()
         {
-            if (player == null) return;
-            float centerX = player.position.x;
+            float centerX = _curtainCenterValid
+                ? _curtainCenterX
+                : (player != null ? player.position.x : transform.position.x);
+            _curtainCenterValid = false;
+
             float topY = transform.position.y + curtainHeight;
             for (int i = 0; i < curtainCount; i++)
             {

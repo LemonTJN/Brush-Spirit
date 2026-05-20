@@ -37,7 +37,7 @@ namespace BrushSpirit.Enemies
         [Header("墨柱地刺 GroundPillars")]
         public int pillarCount = 3;
         public float pillarSpacing = 2.4f;          // 增大间距以保留躲避空隙
-        public float pillarWindupTime = 0.55f;      // 缩短前摇，提高节奏
+        public float pillarWindupTime = 0.8f;      // 红圈预警时长，便于玩家走位
         public float pillarStrikeDuration = 0.45f;
         public float pillarDamage = 22f;
         public float pillarHalfWidth = 0.55f;
@@ -47,6 +47,13 @@ namespace BrushSpirit.Enemies
         [Tooltip("进入 Phase1 / Phase2 时短暂无敌时长（秒），同时披上红色脉冲。")]
         public float phase1InvulnTime = 1.0f;
         public float phase2InvulnTime = 1.3f;
+
+        [Header("贴脸惩罚（Contact Damage，参考 Hollow Knight）")]
+        [Tooltip("玩家距 boss 中心小于此值视为贴脸")]
+        public float contactRange = 1.10f;
+        [Tooltip("贴脸时每秒造成的伤害（每 0.5s 结算一次）")]
+        public float contactDamagePerSec = 14f;
+        float _contactTickT;
 
         [Header("墨涌震波 SlamShockwave")]
         public float slamWindupTime = 0.42f;
@@ -98,6 +105,10 @@ namespace BrushSpirit.Enemies
 
         // 墨柱地刺位置缓存（避免「红圈在 A 点但柱体跟着玩家到 B 点」的 bug）
         float[] _pillarTargetXs;
+
+        // 墨幕坠落中心点缓存（同样防止 telegraph 与 execute 位置不一致）
+        float _curtainCenterX;
+        bool _curtainCenterValid;
 
         SpriteRenderer _sr;
         WorldHealthBar _bar;
@@ -209,8 +220,7 @@ namespace BrushSpirit.Enemies
         {
             var stats = attacker != null ? attacker.GetComponent<PlayerStats>() : null;
             stats?.AddXp(xpReward);
-            if (colorGearDrop != null)
-                Pickup.SpawnAt(transform.position + Vector3.up * 0.6f, colorGearDrop);
+            // 取消 boss 装备掉落（颜色画笔等占位拾取物视觉不佳，进度由武器形态拾取 + 通关流程承担）
             WeaponDropDirector.OnEnemyKilled(transform.position);
             OnDefeated?.Invoke();
             Destroy(gameObject);
@@ -242,6 +252,8 @@ namespace BrushSpirit.Enemies
             if (player == null) return;
             _t += dt;
 
+            TickContactDamage(dt);
+
             switch (_state)
             {
                 case BossState.Chase:   TickChase(dt);   break;
@@ -249,6 +261,29 @@ namespace BrushSpirit.Enemies
                 case BossState.Attack:  TickAttack(dt);  break;
                 case BossState.Recover: TickRecover();   break;
             }
+        }
+
+        /// <summary>
+        /// 贴脸惩罚：玩家距 boss 在 contactRange 内时持续掉血（每 0.5s 一次）。
+        /// 这就是 Hollow Knight 大部分 boss 用的「身体接触判定」——它把战斗节奏从
+        /// 「贴脸站桩平A」改造成「dash 进 → 打两下 → dash 出」。
+        /// 玩家 dash 期间无敌（PlayerStats 已实现 i-frames），所以是公平的。
+        /// </summary>
+        void TickContactDamage(float dt)
+        {
+            if (player == null) return;
+            if (contactDamagePerSec <= 0f) return;
+            float dist = Vector2.Distance(player.position, transform.position);
+            if (dist > contactRange) { _contactTickT = 0f; return; }
+
+            _contactTickT -= dt;
+            if (_contactTickT > 0f) return;
+            _contactTickT = 0.5f; // 每 0.5s 一次结算
+
+            var stats = PlayerStats.Active != null
+                ? PlayerStats.Active
+                : player.GetComponent<PlayerStats>();
+            stats?.TakeDamage(contactDamagePerSec * 0.5f, gameObject);
         }
 
         // ── 追击 ──
@@ -385,10 +420,12 @@ namespace BrushSpirit.Enemies
                         slamWindupTime, new Color(0.6f, 0.18f, 0.08f, 0.55f), slashHeight: 0.55f);
                     break;
                 case AttackKind.BulletCurtain:
-                    // 在玩家头顶宽幅紫条 — 「天空将落弹幕」
+                    // 在玩家头顶宽幅紫条 —— 锁定本次弹幕的中心 X，execute 时按此点而非「之后的玩家位置」生成
                     if (player != null)
                     {
-                        Vector3 pos = new Vector3(player.position.x, transform.position.y + 2.4f, 0f);
+                        _curtainCenterX = player.position.x;
+                        _curtainCenterValid = true;
+                        Vector3 pos = new Vector3(_curtainCenterX, transform.position.y + 2.4f, 0f);
                         float halfSpan = curtainSpacing * (curtainCount - 1) * 0.5f + 0.6f;
                         GameRuntimeBootstrap.ShowAttackSlashFx(
                             pos, 1f, halfSpan,
@@ -557,13 +594,16 @@ namespace BrushSpirit.Enemies
             bolt.isHoming = false;
         }
 
-        // ── 墨幕坠落：玩家上方一排垂直坠落的墨弹 ──
+        // ── 墨幕坠落：用前摇时锁定的中心 X 生成（不再跟随玩家移动） ──
         void ExecuteBulletCurtain()
         {
-            if (player == null) return;
-            float centerX = player.position.x;
-            float topY = transform.position.y + curtainHeight;
+            // 若 telegraph 没跑（极端情况），退回玩家位置
+            float centerX = _curtainCenterValid
+                ? _curtainCenterX
+                : (player != null ? player.position.x : transform.position.x);
+            _curtainCenterValid = false;
 
+            float topY = transform.position.y + curtainHeight;
             for (int i = 0; i < curtainCount; i++)
             {
                 float x = centerX + (i - (curtainCount - 1) * 0.5f) * curtainSpacing;

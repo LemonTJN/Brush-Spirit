@@ -51,7 +51,10 @@ namespace BrushSpirit.Player
             if (d != null)
             {
                 float dmgMul = HeartSceneEnvironment.GetOutgoingDamageMultiplierOnTarget(other.bounds.center);
-                d.TakeDamage(damage * dmgMul, _owner, _dir.x * knockbackImpulse);
+                float focusMul = PlayerStats.OutgoingDamageMul(); // 完美闪避奖励
+                d.TakeDamage(damage * dmgMul * focusMul, _owner, _dir.x * knockbackImpulse);
+                // 子弹命中反馈：轻顿帧 + 小幅震屏，避免连射时一直卡顿
+                BrushSpirit.Core.HitFeedback.Light();
                 Destroy(gameObject);
             }
         }
